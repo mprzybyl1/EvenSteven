@@ -49,6 +49,12 @@ body {
 }
 
 .dark .bg-white { background-color: var(--es-surface); }
+/* Półprzezroczyste warianty (header + dolne paski pod backdrop-blur). */
+.dark .bg-white\/80,
+.dark .bg-white\/90 {
+  background-color: var(--es-surface); /* fallback */
+  background-color: color-mix(in srgb, var(--es-surface) 88%, transparent);
+}
 .dark .bg-slate-50,
 .dark .bg-slate-100 { background-color: var(--es-surface-2); }
 .dark .bg-slate-800 { background-color: var(--es-surface-3); } /* toast sukcesu */
