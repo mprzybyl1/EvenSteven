@@ -228,6 +228,15 @@ export async function expenseRoutes(app: FastifyInstance) {
     return { settlements };
   });
 
+  app.delete("/:groupId/settlements/:settlementId", async (req, reply) => {
+    const { groupId, settlementId } = req.params as { groupId: string; settlementId: string };
+    if (!(await assertMember(groupId, req.authUser!.id, reply))) return;
+    const s = await prisma.settlement.findFirst({ where: { id: settlementId, groupId } });
+    if (!s) return reply.code(404).send({ error: "Nie ma takiej spłaty" });
+    await prisma.settlement.delete({ where: { id: settlementId } });
+    return { ok: true };
+  });
+
   // --- SALDA + "kto komu ile" ---
 
   app.get("/:groupId/balances", async (req, reply) => {

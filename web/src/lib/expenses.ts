@@ -134,3 +134,11 @@ export function useCreateSettlement(groupId: string) {
     onSuccess: () => invalidateGroupMoney(qc, groupId),
   });
 }
+
+export function useDeleteSettlement(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settlementId: string) => api.del(`/groups/${groupId}/settlements/${settlementId}`),
+    onSuccess: () => invalidateGroupMoney(qc, groupId),
+  });
+}

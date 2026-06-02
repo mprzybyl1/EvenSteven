@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { useAuth } from "../auth/AuthProvider";
-import { useGroup } from "../lib/groups";
+import { useGroup, type GroupMember } from "../lib/groups";
 import {
-  useBalances, useCreateSettlement, useDeleteExpense, useExpenses, useSettlements,
+  useBalances, useCreateSettlement, useDeleteExpense, useDeleteSettlement, useExpenses, useSettlements,
   type SettleTx,
 } from "../lib/expenses";
-import { formatMoney } from "../lib/money";
+import { formatMoney, parseAmountToMinor } from "../lib/money";
 
 type Tab = "expenses" | "balances" | "team";
 
@@ -41,7 +41,7 @@ export function GroupDetail() {
 
       <div className="flex-1 px-4 py-4">
         {tab === "expenses" && <ExpensesTab groupId={id} baseCurrency={group.baseCurrency} />}
-        {tab === "balances" && <BalancesTab groupId={id} />}
+        {tab === "balances" && <BalancesTab groupId={id} members={group.members} />}
         {tab === "team" && <TeamTab inviteCode={group.inviteCode} members={group.members} />}
       </div>
 
@@ -104,11 +104,13 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
   );
 }
 
-function BalancesTab({ groupId }: { groupId: string }) {
+function BalancesTab({ groupId, members }: { groupId: string; members: GroupMember[] }) {
   const { data, isLoading } = useBalances(groupId);
   const { data: settlements } = useSettlements(groupId);
   const settle = useCreateSettlement(groupId);
+  const delSettle = useDeleteSettlement(groupId);
   const { user } = useAuth();
+  const [showForm, setShowForm] = useState(false);
 
   if (isLoading || !data) return <p className="text-slate-400">Liczę…</p>;
 
@@ -165,20 +167,88 @@ function BalancesTab({ groupId }: { groupId: string }) {
         )}
       </section>
 
-      {/* Historia spłat */}
-      {settlements && settlements.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold text-slate-600">Spłaty</h2>
-          <div className="flex flex-col gap-2">
+      {/* Ręczna spłata */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-600">Spłaty</h2>
+          <button onClick={() => setShowForm((v) => !v)} className="text-sm font-semibold text-brand-ink">
+            {showForm ? "Anuluj" : "+ Zapisz spłatę"}
+          </button>
+        </div>
+
+        {showForm && (
+          <ManualSettleForm
+            members={members} base={base} currentUserId={user?.id}
+            pending={settle.isPending}
+            onSubmit={(input) => settle.mutate(input, { onSuccess: () => setShowForm(false) })}
+          />
+        )}
+
+        {settlements && settlements.length > 0 ? (
+          <div className="mt-2 flex flex-col gap-2">
             {settlements.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-sm">
-                <span className="text-slate-600">{s.fromUser.displayName} → {s.toUser.displayName}</span>
+              <div key={s.id} className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm">
+                <span className="min-w-0 flex-1 truncate text-slate-600">{s.fromUser.displayName} → {s.toUser.displayName}</span>
                 <span className="font-medium tabular-nums text-slate-700">{formatMoney(s.amountMinor, s.currency)}</span>
+                <button
+                  onClick={() => { if (confirm("Usunąć tę spłatę?")) delSettle.mutate(s.id); }}
+                  className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń spłatę"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                </button>
               </div>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          !showForm && <p className="text-sm text-slate-400">Brak spłat. Rozlicz powyżej albo dodaj ręcznie.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ManualSettleForm({
+  members, base, currentUserId, pending, onSubmit,
+}: {
+  members: GroupMember[];
+  base: string;
+  currentUserId?: string;
+  pending: boolean;
+  onSubmit: (input: { fromUserId: string; toUserId: string; amountMinor: number }) => void;
+}) {
+  const [fromId, setFromId] = useState(currentUserId ?? members[0]?.userId ?? "");
+  const [toId, setToId] = useState(members.find((m) => m.userId !== (currentUserId ?? members[0]?.userId))?.userId ?? "");
+  const [amountStr, setAmountStr] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const sel = "rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm outline-none focus:border-brand-blue";
+
+  function submit() {
+    setErr(null);
+    const amt = parseAmountToMinor(amountStr);
+    if (fromId === toId) return setErr("Wybierz dwie różne osoby");
+    if (!amt || amt <= 0) return setErr("Podaj kwotę");
+    onSubmit({ fromUserId: fromId, toUserId: toId, amountMinor: amt });
+  }
+
+  return (
+    <div className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex items-center gap-2">
+        <select className={`${sel} min-w-0 flex-1`} value={fromId} onChange={(e) => setFromId(e.target.value)}>
+          {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+        </select>
+        <span className="text-slate-400">→</span>
+        <select className={`${sel} min-w-0 flex-1`} value={toId} onChange={(e) => setToId(e.target.value)}>
+          {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
+        </select>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <input className={`${sel} flex-1`} inputMode="decimal" placeholder={`Kwota (${base})`} value={amountStr} onChange={(e) => setAmountStr(e.target.value)} />
+        <button onClick={submit} disabled={pending} className="bg-brand-gradient rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          Zapisz
+        </button>
+      </div>
+      {err && <p className="mt-1.5 text-sm text-red-600">{err}</p>}
     </div>
   );
 }
