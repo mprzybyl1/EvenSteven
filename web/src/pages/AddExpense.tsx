@@ -6,6 +6,7 @@ import { useGroup, CURRENCIES } from "../lib/groups";
 import { useCreateExpense, useExpense, useUpdateExpense, type NewExpenseInput } from "../lib/expenses";
 import { formatMoney, minorToInputString, parseAmountToMinor, splitByPercent, splitEqual } from "../lib/money";
 import { CATEGORIES } from "../lib/categories";
+import { toDateInputValue } from "../lib/dates";
 
 type SplitTab = "equal" | "exact" | "percent";
 type PayerMode = "single" | "multi";
@@ -29,6 +30,7 @@ export function AddExpense() {
   const [rateStr, setRateStr] = useState("1");
   const [tab, setTab] = useState<SplitTab>("equal");
   const [category, setCategory] = useState("other");
+  const [dateStr, setDateStr] = useState(toDateInputValue());
   const [error, setError] = useState<string | null>(null);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -56,6 +58,7 @@ export function AddExpense() {
       const method: SplitTab = editing.splitMethod === "percent" ? "percent" : editing.splitMethod === "equal" ? "equal" : "exact";
       setTab(method);
       setCategory(editing.category ?? "other");
+      setDateStr(toDateInputValue(editing.date));
 
       if (method === "equal") {
         setParticipants(new Set(editing.shares.map((s) => s.userId)));
@@ -150,6 +153,7 @@ export function AddExpense() {
       rateToBase: rate,
       splitMethod: tab,
       category,
+      date: dateStr || undefined,
       payers,
       shares,
     };
@@ -202,6 +206,12 @@ export function AddExpense() {
             <span className="text-amber-800">{baseCurrency}</span>
           </label>
         )}
+
+        {/* Data */}
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-slate-600">Kiedy?</span>
+          <input type="date" className={`${input} flex-1`} value={dateStr} max={toDateInputValue()} onChange={(e) => setDateStr(e.target.value)} />
+        </label>
 
         {/* Kategoria */}
         <div>

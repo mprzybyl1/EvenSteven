@@ -58,6 +58,7 @@ export interface NewExpenseInput {
   rateToBase: number;
   splitMethod: "equal" | "exact" | "percent" | "shares";
   category?: string;
+  date?: string;
   payers: { userId: string; amountMinor: number }[];
   shares: { userId: string; amountMinor: number }[];
 }

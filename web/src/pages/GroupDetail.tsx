@@ -9,6 +9,7 @@ import {
 } from "../lib/expenses";
 import { formatMoney, parseAmountToMinor } from "../lib/money";
 import { categoryMeta } from "../lib/categories";
+import { formatDate, dayKey } from "../lib/dates";
 import { useConfirm } from "../components/Confirm";
 import { useToast } from "../components/Toast";
 
@@ -99,6 +100,15 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
   }
   const breakdown = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
 
+  // Grupowanie po dniach (expenses są już posortowane malejąco po dacie).
+  const groups: { key: string; label: string; items: typeof expenses }[] = [];
+  for (const e of expenses) {
+    const k = dayKey(e.date);
+    let g = groups.find((x) => x.key === k);
+    if (!g) { g = { key: k, label: formatDate(e.date), items: [] }; groups.push(g); }
+    g.items.push(e);
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="mb-1 rounded-xl bg-white p-3 shadow-sm">
@@ -118,35 +128,40 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
         </div>
       </div>
 
-      {expenses.map((e) => {
-        const payerNames = e.payers.map((p) => p.user?.displayName).filter(Boolean).join(", ");
-        const cat = categoryMeta(e.category);
-        return (
-          <div key={e.id} className="flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
-            <Link to={`/groups/${groupId}/expenses/${e.id}/edit`} className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg" title={cat.label}>{cat.emoji}</div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-slate-800">{e.description}</p>
-                <p className="truncate text-xs text-slate-400">
-                  {payerNames} zapłacił{e.payers.length > 1 ? "i" : ""} · dzielone na {e.shares.length}
-                </p>
+      {groups.map((g) => (
+        <div key={g.key} className="flex flex-col gap-2">
+          <p className="mt-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{g.label}</p>
+          {g.items.map((e) => {
+            const payerNames = e.payers.map((p) => p.user?.displayName).filter(Boolean).join(", ");
+            const cat = categoryMeta(e.category);
+            return (
+              <div key={e.id} className="animate-list-item flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
+                <Link to={`/groups/${groupId}/expenses/${e.id}/edit`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg" title={cat.label}>{cat.emoji}</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-slate-800">{e.description}</p>
+                    <p className="truncate text-xs text-slate-400">
+                      {payerNames} zapłacił{e.payers.length > 1 ? "i" : ""} · dzielone na {e.shares.length}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold tabular-nums text-slate-800">{formatMoney(e.amountMinor, e.currency)}</p>
+                    {e.currency !== baseCurrency && (
+                      <p className="text-xs text-slate-400">≈ {formatMoney(Math.round(e.amountMinor * e.rateToBase), baseCurrency)}</p>
+                    )}
+                  </div>
+                </Link>
+                <button
+                  onClick={() => removeExpense(e.id, e.description)}
+                  className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                </button>
               </div>
-              <div className="text-right">
-                <p className="font-semibold tabular-nums text-slate-800">{formatMoney(e.amountMinor, e.currency)}</p>
-                {e.currency !== baseCurrency && (
-                  <p className="text-xs text-slate-400">≈ {formatMoney(Math.round(e.amountMinor * e.rateToBase), baseCurrency)}</p>
-                )}
-              </div>
-            </Link>
-            <button
-              onClick={() => removeExpense(e.id, e.description)}
-              className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
-            </button>
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
