@@ -10,6 +10,10 @@ const schema = z.object({
   COOKIE_SECRET: z.string().min(16, "COOKIE_SECRET musi mieć min. 16 znaków"),
   PORT: z.coerce.number().default(3001),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  // Web Push — opcjonalne. Bez kompletu kluczy push jest wyłączony.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:admin@example.com"),
 });
 
 const parsed = schema.safeParse(process.env);

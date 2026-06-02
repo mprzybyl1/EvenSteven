@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { simplifyDebts } from "../lib/debts.js";
+import { amountLabel, notifyGroupExcept } from "../lib/push.js";
 
 const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Kod waluty to 3 litery");
 
@@ -56,6 +57,22 @@ function expensePayloadError(
 
 export async function expenseRoutes(app: FastifyInstance) {
   app.addHook("preHandler", app.requireAuth);
+
+  // Fire-and-forget push do członków grupy (poza autorem). Pobiera nazwę grupy
+  // i ksywkę autora, składa treść. Nigdy nie wywala głównego flow.
+  function pushToGroup(groupId: string, actorId: string, makeBody: (actorName: string) => string) {
+    void (async () => {
+      const [actor, group] = await Promise.all([
+        prisma.user.findUnique({ where: { id: actorId }, select: { displayName: true } }),
+        prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
+      ]);
+      await notifyGroupExcept(groupId, actorId, {
+        title: group?.name ?? "EvenSteven",
+        body: makeBody(actor?.displayName ?? "Ktoś"),
+        url: `/groups/${groupId}`,
+      });
+    })().catch(() => {});
+  }
 
   // Strażnik: czy zalogowany user należy do grupy z URL? Jak nie -> 403.
   async function assertMember(groupId: string, userId: string, reply: import("fastify").FastifyReply) {
@@ -118,6 +135,7 @@ export async function expenseRoutes(app: FastifyInstance) {
         shares: { create: data.shares.map((s) => ({ userId: s.userId, amountMinor: s.amountMinor })) },
       },
     });
+    pushToGroup(groupId, req.authUser!.id, (who) => `${who} dodał: ${data.description} (${amountLabel(data.amountMinor, data.currency)})`);
     return reply.code(201).send({ expense });
   });
 
@@ -171,6 +189,7 @@ export async function expenseRoutes(app: FastifyInstance) {
         },
       }),
     ]);
+    pushToGroup(groupId, req.authUser!.id, (who) => `${who} zmienił wydatek: ${data.description} (${amountLabel(data.amountMinor, data.currency)})`);
     return reply.send({ expense });
   });
 
@@ -180,6 +199,7 @@ export async function expenseRoutes(app: FastifyInstance) {
     const exp = await prisma.expense.findFirst({ where: { id: expenseId, groupId } });
     if (!exp) return reply.code(404).send({ error: "Nie ma takiego wydatku" });
     await prisma.expense.delete({ where: { id: expenseId } });
+    pushToGroup(groupId, req.authUser!.id, (who) => `${who} usunął wydatek: ${exp.description}`);
     return { ok: true };
   });
 
@@ -211,6 +231,7 @@ export async function expenseRoutes(app: FastifyInstance) {
         note: d.note,
       },
     });
+    pushToGroup(groupId, req.authUser!.id, (who) => `${who} zapisał spłatę: ${amountLabel(d.amountMinor, group!.baseCurrency)}`);
     return reply.code(201).send({ settlement });
   });
 

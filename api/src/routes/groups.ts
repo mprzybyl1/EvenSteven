@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { notifyGroupExcept } from "../lib/push.js";
 
 const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Kod waluty to 3 litery, np. PLN");
 
@@ -108,6 +109,17 @@ export async function groupRoutes(app: FastifyInstance) {
     if (already) return reply.send({ group: { id: group.id }, alreadyMember: true });
 
     await prisma.groupMember.create({ data: { groupId: group.id, userId, role: "member" } });
+
+    // Powiadom dotychczasowych członków, że ktoś dołączył (fire-and-forget).
+    void (async () => {
+      const joiner = await prisma.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+      await notifyGroupExcept(group.id, userId, {
+        title: group.name,
+        body: `${joiner?.displayName ?? "Ktoś"} dołączył do wyjazdu`,
+        url: `/groups/${group.id}`,
+      });
+    })().catch(() => {});
+
     return reply.code(201).send({ group: { id: group.id }, alreadyMember: false });
   });
 

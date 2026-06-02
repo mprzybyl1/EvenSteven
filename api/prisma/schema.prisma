@@ -28,6 +28,18 @@ model User {
   shares          ExpenseShare[]
   settlementsFrom Settlement[]   @relation("SettlementFrom")
   settlementsTo   Settlement[]   @relation("SettlementTo")
+  pushSubscriptions PushSubscription[]
+}
+
+// Subskrypcja Web Push — jedna na urządzenie/przeglądarkę użytkownika.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String // klucz publiczny klienta
+  auth      String // sekret auth klienta
+  createdAt DateTime @default(now())
 }
 
 // Grupa = jeden wyjazd / jedno wspólne rozliczenie. Ma walutę bazową,

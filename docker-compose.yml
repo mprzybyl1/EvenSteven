@@ -37,6 +37,9 @@ services:
       COOKIE_SECRET: ${COOKIE_SECRET}
       PORT: 3001
       CORS_ORIGIN: https://${DOMAIN}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
     expose:
       - "3001"
 
