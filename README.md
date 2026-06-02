@@ -91,9 +91,10 @@ Zasada spójności: `suma(payers) == suma(shares) == amountMinor`.
 - [x] **Wydatki:** dodawanie z podziałem (równo/kwoty/procenty), inna waluta z kursem
 - [x] **Spłaty** + ekran "kto komu ile" (zachłanne wyrównanie)
 - [x] **Multi-waluta** w UI (kurs ręczny per wydatek)
-- [ ] **Multi-płatnik** w UI (model już wspiera; teraz pojedynczy płatnik)
+- [x] **Multi-płatnik** w UI (tryb Jeden / Kilku płatników)
+- [x] **Edycja wydatku** (klik w wydatek na liście)
 - [ ] **Uproszczenie długów** — minimalna liczba przelewów (teraz zachłanne)
-- [ ] Edycja wydatku, itemized splits, auto-kursy walut, kategorie, eksport
+- [ ] Itemized splits, auto-kursy walut, kategorie, eksport
 - [ ] Wdrożenie na VPS (Docker + Caddy + Postgres)
 
 ## Wdrożenie (skrót — później)
