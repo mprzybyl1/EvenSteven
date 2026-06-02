@@ -8,6 +8,7 @@ import {
   type SettleTx,
 } from "../lib/expenses";
 import { formatMoney, parseAmountToMinor } from "../lib/money";
+import { categoryMeta } from "../lib/categories";
 
 type Tab = "expenses" | "balances" | "team";
 
@@ -79,13 +80,42 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
     );
   }
 
+  // Podsumowanie wg kategorii (w walucie bazowej grupy), największe pierwsze.
+  const byCategory = new Map<string, number>();
+  let total = 0;
+  for (const e of expenses) {
+    const base = Math.round(e.amountMinor * e.rateToBase);
+    total += base;
+    byCategory.set(e.category ?? "other", (byCategory.get(e.category ?? "other") ?? 0) + base);
+  }
+  const breakdown = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
+
   return (
     <div className="flex flex-col gap-2">
+      <div className="mb-1 rounded-xl bg-white p-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-500">Razem</span>
+          <span className="font-bold tabular-nums text-slate-800">{formatMoney(total, baseCurrency)}</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {breakdown.map(([key, amt]) => {
+            const c = categoryMeta(key);
+            return (
+              <span key={key} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                {c.emoji} {formatMoney(amt, baseCurrency)}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
       {expenses.map((e) => {
         const payerNames = e.payers.map((p) => p.user?.displayName).filter(Boolean).join(", ");
+        const cat = categoryMeta(e.category);
         return (
           <div key={e.id} className="flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
             <Link to={`/groups/${groupId}/expenses/${e.id}/edit`} className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg" title={cat.label}>{cat.emoji}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-slate-800">{e.description}</p>
                 <p className="truncate text-xs text-slate-400">

@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useGroup, CURRENCIES } from "../lib/groups";
 import { useCreateExpense, useExpense, useUpdateExpense, type NewExpenseInput } from "../lib/expenses";
 import { formatMoney, minorToInputString, parseAmountToMinor, splitByPercent, splitEqual } from "../lib/money";
+import { CATEGORIES } from "../lib/categories";
 
 type SplitTab = "equal" | "exact" | "percent";
 type PayerMode = "single" | "multi";
@@ -27,6 +28,7 @@ export function AddExpense() {
   const [currency, setCurrency] = useState(baseCurrency);
   const [rateStr, setRateStr] = useState("1");
   const [tab, setTab] = useState<SplitTab>("equal");
+  const [category, setCategory] = useState("other");
   const [error, setError] = useState<string | null>(null);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -53,6 +55,7 @@ export function AddExpense() {
       setRateStr(String(editing.rateToBase));
       const method: SplitTab = editing.splitMethod === "percent" ? "percent" : editing.splitMethod === "equal" ? "equal" : "exact";
       setTab(method);
+      setCategory(editing.category ?? "other");
 
       if (method === "equal") {
         setParticipants(new Set(editing.shares.map((s) => s.userId)));
@@ -146,6 +149,7 @@ export function AddExpense() {
       currency,
       rateToBase: rate,
       splitMethod: tab,
+      category,
       payers,
       shares,
     };
@@ -198,6 +202,21 @@ export function AddExpense() {
             <span className="text-amber-800">{baseCurrency}</span>
           </label>
         )}
+
+        {/* Kategoria */}
+        <div>
+          <span className="text-sm font-medium text-slate-600">Kategoria</span>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CATEGORIES.map((c) => (
+              <button
+                type="button" key={c.key} onClick={() => setCategory(c.key)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition ${category === c.key ? "border-brand-blue bg-brand-blue/10 font-semibold text-brand-ink" : "border-slate-200 bg-white text-slate-600"}`}
+              >
+                {c.emoji} {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Kto zapłacił */}
         <div>
