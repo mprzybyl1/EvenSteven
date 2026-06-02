@@ -1,0 +1,25 @@
+# Caddy: automatyczne HTTPS (Let's Encrypt) + serwowanie frontu + proxy /api.
+# {$DOMAIN} podstawia się ze zmiennej środowiskowej z docker-compose.
+
+{$DOMAIN} {
+	encode gzip
+
+	# API -> kontener Fastify
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	# Reszta -> statyczny build frontu (SPA: nieznane ścieżki -> index.html)
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Podstawowe nagłówki bezpieczeństwa
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}

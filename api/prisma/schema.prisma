@@ -1,0 +1,125 @@
+// EvenSteven — schemat bazy
+//
+// Uwaga o przenośności: dev jedzie na SQLite (zero infra), prod na PostgreSQL (VPS).
+// Dlatego ŚWIADOMIE nie używamy enumów Prisma (SQLite ich nie wspiera) — pola
+// "typu enum" trzymamy jako String i walidujemy w warstwie aplikacji (Zod).
+// Przeskok na Postgresa = zmiana providera niżej + DATABASE_URL. Reszta bez zmian.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // prod: zmień na "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  displayName  String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  memberships     GroupMember[]
+  createdGroups   Group[]        @relation("GroupCreator")
+  createdExpenses Expense[]      @relation("ExpenseCreator")
+  payments        ExpensePayer[]
+  shares          ExpenseShare[]
+  settlementsFrom Settlement[]   @relation("SettlementFrom")
+  settlementsTo   Settlement[]   @relation("SettlementTo")
+}
+
+// Grupa = jeden wyjazd / jedno wspólne rozliczenie. Ma walutę bazową,
+// do której sprowadzamy wszystkie salda.
+model Group {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  baseCurrency String // ISO 4217, np. "PLN", "EUR"
+  inviteCode   String   @unique @default(cuid())
+  createdById  String
+  createdBy    User     @relation("GroupCreator", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("member") // "owner" | "member"
+  joinedAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+}
+
+// Wydatek. Serce modelu: dwie listy — kto PŁACIŁ (payers) i kto jest WINIEN (shares).
+// Ten jeden mechanizm pokrywa wszystkie rodzaje wymiany:
+//  - dzielone równo/nierówno  -> wiele shares
+//  - dług 1:1 ("wiszę ci za X") -> payer = A, jedyny share = B
+//  - wielu płatników           -> wiele payers
+//  - tylko część grupy         -> shares tylko dla wybranych
+// Kwoty zawsze w GROSZACH (Int), nigdy float. Suma payers == suma shares == amountMinor.
+model Expense {
+  id          String   @id @default(cuid())
+  groupId     String
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  description String
+  amountMinor Int // suma wydatku w groszach waluty `currency`
+  currency    String // ISO 4217 waluty wydatku (może != baseCurrency grupy)
+  rateToBase  Float    @default(1) // mnożnik: wartość_w_bazowej = amountMinor * rateToBase
+  splitMethod String   @default("equal") // "equal" | "exact" | "percent" | "shares" (metadana do edycji/UI)
+  date        DateTime @default(now())
+  category    String?
+  createdById String
+  createdBy   User     @relation("ExpenseCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  payers ExpensePayer[]
+  shares ExpenseShare[]
+}
+
+model ExpensePayer {
+  id          String  @id @default(cuid())
+  expenseId   String
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+  amountMinor Int // ile ta osoba wyłożyła (w walucie wydatku)
+
+  @@unique([expenseId, userId])
+}
+
+model ExpenseShare {
+  id          String  @id @default(cuid())
+  expenseId   String
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+  amountMinor Int // ile ta osoba jest winna za ten wydatek (w walucie wydatku)
+
+  @@unique([expenseId, userId])
+}
+
+// Spłata długu — NIE jest wydatkiem. Po prostu A oddał B trochę kasy,
+// co zeruje (część) salda. Trzymamy w walucie bazowej grupy.
+model Settlement {
+  id          String   @id @default(cuid())
+  groupId     String
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User     @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User     @relation("SettlementTo", fields: [toUserId], references: [id])
+  amountMinor Int
+  currency    String
+  date        DateTime @default(now())
+  note        String?
+  createdAt   DateTime @default(now())
+}

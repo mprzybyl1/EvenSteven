@@ -1,0 +1,26 @@
+# zależności
+node_modules/
+
+# buildy
+dist/
+build/
+
+# sekrety i środowisko
+.env
+.env.*
+!.env.example
+
+# baza dev (SQLite)
+*.db
+*.db-journal
+api/prisma/dev.db
+api/prisma/*.db
+
+# logi i śmieci
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
