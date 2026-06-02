@@ -6,6 +6,8 @@ import {
   CURRENCIES, useDeleteGroup, useGroup, useLeaveGroup, useRemoveMember, useUpdateGroup,
 } from "../lib/groups";
 import { useExpenses } from "../lib/expenses";
+import { useConfirm } from "../components/Confirm";
+import { useToast } from "../components/Toast";
 
 export function GroupSettings() {
   const { id = "" } = useParams();
@@ -17,6 +19,8 @@ export function GroupSettings() {
   const removeMember = useRemoveMember(id);
   const deleteGroup = useDeleteGroup();
   const leaveGroup = useLeaveGroup();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -46,6 +50,7 @@ export function GroupSettings() {
     try {
       await update.mutateAsync({ name, description: description || null, baseCurrency });
       setSaved(true);
+      toast.success("Zapisano zmiany");
       setTimeout(() => setSaved(false), 1800);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się zapisać");
@@ -53,21 +58,22 @@ export function GroupSettings() {
   }
 
   async function onDelete() {
-    if (!confirm(`Usunąć wyjazd "${group!.name}" wraz ze wszystkimi wydatkami? Tego nie da się cofnąć.`)) return;
-    try { await deleteGroup.mutateAsync(id); navigate("/", { replace: true }); }
-    catch (err) { setError(err instanceof Error ? err.message : "Nie udało się usunąć"); }
+    const ok = await confirm({ title: "Usunąć wyjazd?", message: `„${group!.name}" zniknie wraz ze wszystkimi wydatkami. Tego nie da się cofnąć.`, confirmText: "Usuń wyjazd", danger: true });
+    if (!ok) return;
+    try { await deleteGroup.mutateAsync(id); toast.success("Wyjazd usunięty"); navigate("/", { replace: true }); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Nie udało się usunąć"); }
   }
 
   async function onLeave() {
-    if (!confirm("Opuścić ten wyjazd?")) return;
-    try { await leaveGroup.mutateAsync(id); navigate("/", { replace: true }); }
-    catch (err) { setError(err instanceof Error ? err.message : "Nie udało się wyjść"); }
+    if (!(await confirm({ title: "Opuścić wyjazd?", message: "Przestaniesz widzieć ten wyjazd.", confirmText: "Opuść", danger: true }))) return;
+    try { await leaveGroup.mutateAsync(id); toast.success("Opuściłeś wyjazd"); navigate("/", { replace: true }); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Nie udało się wyjść"); }
   }
 
   async function onRemove(userId: string, displayName: string) {
-    if (!confirm(`Wyrzucić ${displayName} z wyjazdu?`)) return;
-    try { await removeMember.mutateAsync(userId); }
-    catch (err) { alert(err instanceof Error ? err.message : "Nie udało się usunąć"); }
+    if (!(await confirm({ title: "Wyrzucić z wyjazdu?", message: `${displayName} straci dostęp do tego wyjazdu.`, confirmText: "Wyrzuć", danger: true }))) return;
+    try { await removeMember.mutateAsync(userId); toast.success(`${displayName} usunięty`); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Nie udało się usunąć"); }
   }
 
   return (

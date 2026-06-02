@@ -9,6 +9,8 @@ import {
 } from "../lib/expenses";
 import { formatMoney, parseAmountToMinor } from "../lib/money";
 import { categoryMeta } from "../lib/categories";
+import { useConfirm } from "../components/Confirm";
+import { useToast } from "../components/Toast";
 
 type Tab = "expenses" | "balances" | "team";
 
@@ -68,6 +70,13 @@ export function GroupDetail() {
 function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency: string }) {
   const { data: expenses, isLoading } = useExpenses(groupId);
   const del = useDeleteExpense(groupId);
+  const confirm = useConfirm();
+  const toast = useToast();
+
+  async function removeExpense(id: string, description: string) {
+    if (!(await confirm({ title: "Usunąć wydatek?", message: `„${description}" zniknie z rozliczenia.`, confirmText: "Usuń", danger: true }))) return;
+    del.mutate(id, { onSuccess: () => toast.success("Wydatek usunięty") });
+  }
 
   if (isLoading) return <p className="text-slate-400">Ładuję…</p>;
   if (!expenses || expenses.length === 0) {
@@ -130,7 +139,7 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
               </div>
             </Link>
             <button
-              onClick={() => { if (confirm(`Usunąć "${e.description}"?`)) del.mutate(e.id); }}
+              onClick={() => removeExpense(e.id, e.description)}
               className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
@@ -148,15 +157,30 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
   const settle = useCreateSettlement(groupId);
   const delSettle = useDeleteSettlement(groupId);
   const { user } = useAuth();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
 
   if (isLoading || !data) return <p className="text-slate-400">Liczę…</p>;
 
   const base = data.baseCurrency;
 
-  function doSettle(t: SettleTx) {
-    if (!confirm(`${t.fromName} → ${t.toName}: ${formatMoney(t.amountMinor, base)}.\nOznaczyć jako rozliczone?`)) return;
-    settle.mutate({ fromUserId: t.fromUserId, toUserId: t.toUserId, amountMinor: t.amountMinor });
+  async function doSettle(t: SettleTx) {
+    const ok = await confirm({
+      title: "Rozliczyć?",
+      message: `${t.fromName} → ${t.toName}: ${formatMoney(t.amountMinor, base)}. Zapisać jako spłatę?`,
+      confirmText: "Rozlicz",
+    });
+    if (!ok) return;
+    settle.mutate(
+      { fromUserId: t.fromUserId, toUserId: t.toUserId, amountMinor: t.amountMinor },
+      { onSuccess: () => toast.success("Rozliczone!") },
+    );
+  }
+
+  async function removeSettlement(id: string) {
+    if (!(await confirm({ title: "Usunąć spłatę?", message: "Saldo zostanie przeliczone.", confirmText: "Usuń", danger: true }))) return;
+    delSettle.mutate(id, { onSuccess: () => toast.success("Spłata usunięta") });
   }
 
   return (
@@ -218,7 +242,7 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
           <ManualSettleForm
             members={members} base={base} currentUserId={user?.id}
             pending={settle.isPending}
-            onSubmit={(input) => settle.mutate(input, { onSuccess: () => setShowForm(false) })}
+            onSubmit={(input) => settle.mutate(input, { onSuccess: () => { setShowForm(false); toast.success("Spłata zapisana"); } })}
           />
         )}
 
@@ -229,7 +253,7 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
                 <span className="min-w-0 flex-1 truncate text-slate-600">{s.fromUser.displayName} → {s.toUser.displayName}</span>
                 <span className="font-medium tabular-nums text-slate-700">{formatMoney(s.amountMinor, s.currency)}</span>
                 <button
-                  onClick={() => { if (confirm("Usunąć tę spłatę?")) delSettle.mutate(s.id); }}
+                  onClick={() => removeSettlement(s.id)}
                   className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń spłatę"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
