@@ -99,6 +99,7 @@ Zasada spójności: `suma(payers) == suma(shares) == amountMinor`.
 - [x] **Kategorie wydatków** (z ikonami + podsumowanie wg kategorii)
 - [x] **Konto** — profil, zmiana ksywki i hasła
 - [x] **UI polish** — toasty, dialogi, daty + grupowanie, czytelne salda, animacje
+- [x] **Powiadomienia push** (Web Push/VAPID) — nowy wydatek, edycja, usunięcie, spłata, dołączenie
 - [ ] Itemized splits, auto-kursy walut, eksport CSV
 
 ## Wdrożenie na VPS (Docker + Caddy + Postgres)
@@ -122,6 +123,8 @@ cd EvenSteven
 cp .env.prod.example .env.prod
 # wpisz domenę i wygeneruj sekrety:
 #   openssl rand -hex 32   (dla JWT_SECRET, COOKIE_SECRET, hasła do Postgresa)
+# klucze VAPID do powiadomień push (opcjonalne — bez nich push jest wyłączony):
+#   docker run --rm node:22-alpine npx -y web-push generate-vapid-keys
 nano .env.prod
 ```
 
