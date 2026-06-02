@@ -1,11 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { useAuth } from "../auth/AuthProvider";
+import { disablePush, enablePush, getPushSubscription, isStandalone, pushSupported } from "../lib/push";
 
 export function Profile() {
   const { user, updateProfile, changePassword, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Powiadomienia push
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const supported = pushSupported();
+  const standalone = isStandalone();
+
+  useEffect(() => {
+    if (!supported) return;
+    getPushSubscription().then((s) => setPushOn(!!s)).catch(() => {});
+  }, [supported]);
+
+  async function togglePush() {
+    setPushMsg(null);
+    setPushBusy(true);
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+        setPushMsg({ ok: true, text: "Powiadomienia wyłączone" });
+      } else {
+        await enablePush();
+        setPushOn(true);
+        setPushMsg({ ok: true, text: "Powiadomienia włączone ✓" });
+      }
+    } catch (err) {
+      setPushMsg({ ok: false, text: err instanceof Error ? err.message : "Nie udało się" });
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [nameMsg, setNameMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -83,6 +116,33 @@ export function Profile() {
           <button onClick={savePassword} disabled={pwBusy || !currentPassword || !newPassword} className="rounded-xl border border-slate-200 py-3 font-semibold text-slate-700 disabled:opacity-50">
             {pwBusy ? "Zmieniam…" : "Zmień hasło"}
           </button>
+        </section>
+
+        {/* Powiadomienia */}
+        <section className="flex flex-col gap-2 border-t border-slate-100 pt-5">
+          <h2 className="text-sm font-semibold text-slate-600">Powiadomienia push</h2>
+          {!supported ? (
+            <p className="text-sm text-slate-400">
+              Ta przeglądarka nie wspiera powiadomień.
+              {/iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone && " Na iPhonie dodaj apkę do ekranu głównego (Udostępnij → Dodaj do ekranu początkowego), wtedy zadziałają."}
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500">Dostaniesz powiadomienie, gdy ktoś doda wydatek, spłatę albo dołączy do wyjazdu.</p>
+              {!standalone && /iPhone|iPad|iPod/.test(navigator.userAgent) && (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Na iPhonie push działa tylko z apki dodanej do ekranu głównego.
+                </p>
+              )}
+              {pushMsg && <p className={`text-sm ${pushMsg.ok ? "text-green-600" : "text-red-600"}`}>{pushMsg.text}</p>}
+              <button
+                onClick={togglePush} disabled={pushBusy}
+                className={`rounded-xl py-3 font-semibold shadow-md disabled:opacity-60 ${pushOn ? "border border-slate-200 text-slate-700" : "bg-brand-gradient text-white"}`}
+              >
+                {pushBusy ? "Chwila…" : pushOn ? "Wyłącz powiadomienia" : "🔔 Włącz powiadomienia"}
+              </button>
+            </>
+          )}
         </section>
 
         {/* Wyloguj */}

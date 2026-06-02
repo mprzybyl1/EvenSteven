@@ -10,7 +10,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      // Własny service worker (src/sw.ts) — żeby obsłużyć zdarzenia push.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       includeAssets: ["logo.png"],
+      injectManifest: { maximumFileSizeToCacheInBytes: 3_000_000 },
       manifest: {
         name: "EvenSteven",
         short_name: "EvenSteven",
