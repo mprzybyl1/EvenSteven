@@ -98,15 +98,44 @@ Zasada spójności: `suma(payers) == suma(shares) == amountMinor`.
 - [x] **Zarządzanie grupą** — edycja, usuwanie, opuszczanie, wyrzucanie członka
 - [x] **Kategorie wydatków** (z ikonami + podsumowanie wg kategorii)
 - [x] **Konto** — profil, zmiana ksywki i hasła
-- [ ] UI polish (drobne poprawki wyglądu/UX)
+- [x] **UI polish** — toasty, dialogi, daty + grupowanie, czytelne salda, animacje
 - [ ] Itemized splits, auto-kursy walut, eksport CSV
-- [ ] Wdrożenie na VPS (Docker + Caddy + Postgres)
 
-## Wdrożenie (skrót — później)
+## Wdrożenie na VPS (Docker + Caddy + Postgres)
 
-1. `web`: `npm run build` → statyk do `web/dist`
-2. `api/prisma/schema.prisma`: provider na `postgresql`
-3. `.env.prod.example` → `.env.prod`, uzupełnij sekrety + domenę
-4. `docker compose --env-file .env.prod up -d --build`
+Wszystko jedzie w kontenerach — na serwerze potrzebujesz tylko Dockera. Provider
+Prismy (sqlite→postgres) i build frontu dzieją się automatycznie w obrazach.
 
-Caddy sam ogarnie certyfikat HTTPS dla domeny.
+**1. DNS** — w panelu domeny ustaw rekord `A` na publiczny IPv4 serwera
+(opcjonalnie `AAAA` na IPv6). Zostaw publiczny IPv4 włączony — kumple na sieciach
+mobilnych bez IPv6 inaczej się nie połączą.
+
+**2. Serwer** — zainstaluj Dockera (Ubuntu/Debian):
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+**3. Kod + sekrety:**
+```bash
+git clone https://github.com/mprzybyl1/EvenSteven.git
+cd EvenSteven
+cp .env.prod.example .env.prod
+# wpisz domenę i wygeneruj sekrety:
+#   openssl rand -hex 32   (dla JWT_SECRET, COOKIE_SECRET, hasła do Postgresa)
+nano .env.prod
+```
+
+**4. Start:**
+```bash
+docker compose --env-file .env.prod up -d --build
+```
+
+Caddy automatycznie wyrobi certyfikat HTTPS (Let's Encrypt) dla Twojej domeny.
+Wejdź na `https://twoja-domena` — apka działa.
+
+**Aktualizacja po zmianach:**
+```bash
+git pull && docker compose --env-file .env.prod up -d --build
+```
+
+**Podgląd logów:** `docker compose logs -f api`

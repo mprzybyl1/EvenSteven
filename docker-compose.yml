@@ -1,10 +1,12 @@
-# Wdrożenie produkcyjne na VPS (szkielet — dopracujemy przy realnym deployu).
+# Wdrożenie produkcyjne na VPS.
 # Stack: PostgreSQL + API (Fastify) + Caddy (statyczny front + reverse proxy /api + auto-HTTPS).
 #
 # Przed pierwszym uruchomieniem:
 #   1) skopiuj .env.prod.example -> .env.prod i uzupełnij sekrety + domenę
-#   2) w api/prisma/schema.prisma zmień provider na "postgresql"
-#   3) docker compose --env-file .env.prod up -d --build
+#   2) docker compose --env-file .env.prod up -d --build
+#
+# Provider Prismy (sqlite -> postgresql) podmienia się automatycznie przy buildzie obrazu api.
+# Frontend buduje się i wypieka do obrazu caddy. Nic nie trzeba ruszać ręcznie.
 
 services:
   db:
@@ -39,7 +41,9 @@ services:
       - "3001"
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     restart: unless-stopped
     depends_on:
       - api
@@ -50,7 +54,6 @@ services:
       DOMAIN: ${DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./web/dist:/srv/web:ro
       - caddy_data:/data
       - caddy_config:/config
 
