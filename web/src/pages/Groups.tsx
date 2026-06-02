@@ -24,10 +24,13 @@ export function Groups() {
         {isLoading && <p className="text-slate-400">Ładuję…</p>}
 
         {!isLoading && groups && groups.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
-            <p className="text-4xl">🏔️</p>
-            <p className="mt-2 font-semibold text-slate-700">Brak wyjazdów</p>
-            <p className="mt-1 text-sm text-slate-400">Załóż pierwszy albo dołącz do ekipy przez link.</p>
+          <div className="animate-rise mt-6 rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
+            <p className="text-5xl">🏔️</p>
+            <p className="mt-3 font-semibold text-slate-700">Czas na pierwszy wyjazd!</p>
+            <p className="mt-1 text-sm text-slate-400">Załóż wspólne rozliczenie albo dołącz do ekipy przez link od kumpla.</p>
+            <Link to="/groups/new" className="bg-brand-gradient mt-5 inline-block rounded-xl px-5 py-2.5 font-semibold text-white shadow-md">
+              + Nowy wyjazd
+            </Link>
           </div>
         )}
 
@@ -36,7 +39,7 @@ export function Groups() {
             <Link
               key={g.id}
               to={`/groups/${g.id}`}
-              className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition active:scale-[0.99]"
+              className="animate-list-item flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition active:scale-[0.99]"
             >
               <div className="min-w-0">
                 <p className="truncate font-semibold text-slate-800">{g.name}</p>

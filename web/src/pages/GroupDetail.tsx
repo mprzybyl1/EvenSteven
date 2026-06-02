@@ -198,8 +198,21 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
     delSettle.mutate(id, { onSuccess: () => toast.success("Spłata usunięta") });
   }
 
+  const myBalance = data.balances.find((b) => b.userId === user?.id)?.amountMinor ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Twoje saldo — wyróżnione */}
+      <div className={`animate-rise rounded-2xl p-5 text-center shadow-sm ${myBalance > 0 ? "bg-green-50" : myBalance < 0 ? "bg-red-50" : "bg-white"}`}>
+        <p className="text-sm text-slate-500">Twoje saldo</p>
+        <p className={`mt-0.5 text-3xl font-extrabold tabular-nums ${myBalance > 0 ? "text-green-600" : myBalance < 0 ? "text-red-500" : "text-slate-400"}`}>
+          {myBalance === 0 ? "0,00" : `${myBalance > 0 ? "+" : ""}${formatMoney(myBalance, base)}`}
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          {myBalance > 0 ? "tyle Ci oddadzą 🤑" : myBalance < 0 ? "tyle musisz oddać" : "jesteś na czysto 🎉"}
+        </p>
+      </div>
+
       {/* Salda osób */}
       <section>
         <h2 className="mb-2 text-sm font-semibold text-slate-600">Salda</h2>
@@ -208,7 +221,7 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
             const isMe = b.userId === user?.id;
             const zero = b.amountMinor === 0;
             return (
-              <div key={b.userId} className="flex items-center justify-between rounded-xl bg-white p-3 shadow-sm">
+              <div key={b.userId} className={`flex items-center justify-between rounded-xl p-3 shadow-sm ${isMe ? "bg-brand-blue/5 ring-1 ring-brand-blue/20" : "bg-white"}`}>
                 <span className="font-medium text-slate-700">{b.displayName}{isMe ? " (Ty)" : ""}</span>
                 <span className={`font-semibold tabular-nums ${zero ? "text-slate-400" : b.amountMinor > 0 ? "text-green-600" : "text-red-500"}`}>
                   {zero ? "na czysto" : `${b.amountMinor > 0 ? "+" : ""}${formatMoney(b.amountMinor, base)}`}
@@ -228,7 +241,7 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
         ) : (
           <div className="flex flex-col gap-2">
             {data.transactions.map((t, i) => (
-              <div key={i} className="flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
+              <div key={i} className="animate-list-item flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
                 <span className="min-w-0 flex-1 truncate text-sm">
                   <span className="font-medium text-slate-700">{t.fromName}</span>
                   <span className="text-slate-400"> → </span>
