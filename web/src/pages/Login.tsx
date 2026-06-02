@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { Logo } from "../components/Logo";
 
 export function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export function Login() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Coś poszło nie tak");
     } finally {

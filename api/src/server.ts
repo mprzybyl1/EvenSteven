@@ -5,6 +5,7 @@ import rateLimit from "@fastify/rate-limit";
 import { env, isProd } from "./env.js";
 import { authPlugin } from "./auth/plugin.js";
 import { authRoutes } from "./auth/routes.js";
+import { groupRoutes } from "./routes/groups.js";
 import { prisma } from "./db.js";
 
 const app = Fastify({
@@ -24,6 +25,7 @@ await app.register(authPlugin);
 // --- Trasy ---
 app.get("/api/health", async () => ({ ok: true, service: "evensteven-api" }));
 await app.register(authRoutes, { prefix: "/api/auth" });
+await app.register(groupRoutes, { prefix: "/api/groups" });
 
 // Logowanie/rejestracja ostrzej rate-limitowane (anty brute-force) — globalny limit
 // już jest, tu zostawiamy miejsce na ewentualny ostrzejszy per-route limit później.
