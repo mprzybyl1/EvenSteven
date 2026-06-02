@@ -91,11 +91,30 @@ function invalidateGroupMoney(qc: ReturnType<typeof useQueryClient>, groupId: st
   qc.invalidateQueries({ queryKey: ["groups"] });
 }
 
+export function useExpense(groupId: string, expenseId: string | undefined) {
+  return useQuery({
+    queryKey: ["expense", groupId, expenseId],
+    queryFn: () => api.get<{ expense: Expense }>(`/groups/${groupId}/expenses/${expenseId}`).then((r) => r.expense),
+    enabled: !!expenseId,
+  });
+}
+
 export function useCreateExpense(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: NewExpenseInput) => api.post(`/groups/${groupId}/expenses`, input),
     onSuccess: () => invalidateGroupMoney(qc, groupId),
+  });
+}
+
+export function useUpdateExpense(groupId: string, expenseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: NewExpenseInput) => api.put(`/groups/${groupId}/expenses/${expenseId}`, input),
+    onSuccess: () => {
+      invalidateGroupMoney(qc, groupId);
+      qc.invalidateQueries({ queryKey: ["expense", groupId, expenseId] });
+    },
   });
 }
 

@@ -9,6 +9,11 @@ export function formatMoney(minor: number, currency: string): string {
   }
 }
 
+// 1234 (grosze) -> "12,34" do wstawienia w pole input (edycja wydatku).
+export function minorToInputString(minor: number): string {
+  return (minor / 100).toFixed(2).replace(".", ",");
+}
+
 // "12,34" albo "12.34" -> 1234 (grosze). Zwraca null jak się nie parsuje.
 export function parseAmountToMinor(input: string): number | null {
   const normalized = input.trim().replace(/\s/g, "").replace(",", ".");

@@ -34,6 +34,25 @@ function sum(lines: { amountMinor: number }[]) {
   return lines.reduce((acc, l) => acc + l.amountMinor, 0);
 }
 
+// Walidacja spójności wydatku — wspólna dla tworzenia i edycji.
+// Zwraca komunikat błędu albo null gdy OK.
+function expensePayloadError(
+  data: { amountMinor: number; payers: { userId: string; amountMinor: number }[]; shares: { userId: string; amountMinor: number }[] },
+  members: Set<string>,
+): string | null {
+  if (sum(data.payers) !== data.amountMinor) return "Suma wpłat płatników musi równać się kwocie wydatku";
+  if (sum(data.shares) !== data.amountMinor) return "Suma udziałów musi równać się kwocie wydatku";
+  const payerIds = data.payers.map((p) => p.userId);
+  const shareIds = data.shares.map((s) => s.userId);
+  if (new Set(payerIds).size !== payerIds.length || new Set(shareIds).size !== shareIds.length) {
+    return "Powtórzona osoba w płatnikach lub udziałach";
+  }
+  for (const uid of [...payerIds, ...shareIds]) {
+    if (!members.has(uid)) return "Ktoś spoza grupy w wydatku";
+  }
+  return null;
+}
+
 export async function expenseRoutes(app: FastifyInstance) {
   app.addHook("preHandler", app.requireAuth);
 
@@ -80,24 +99,8 @@ export async function expenseRoutes(app: FastifyInstance) {
     }
     const data = parsed.data;
 
-    // Spójność kwot: suma płatników == suma udziałów == kwota wydatku.
-    if (sum(data.payers) !== data.amountMinor) {
-      return reply.code(400).send({ error: "Suma wpłat płatników musi równać się kwocie wydatku" });
-    }
-    if (sum(data.shares) !== data.amountMinor) {
-      return reply.code(400).send({ error: "Suma udziałów musi równać się kwocie wydatku" });
-    }
-
-    // Wszyscy wskazani muszą być członkami grupy i bez duplikatów.
-    const members = await memberIds(groupId);
-    const payerIds = data.payers.map((p) => p.userId);
-    const shareIds = data.shares.map((s) => s.userId);
-    if (new Set(payerIds).size !== payerIds.length || new Set(shareIds).size !== shareIds.length) {
-      return reply.code(400).send({ error: "Powtórzona osoba w płatnikach lub udziałach" });
-    }
-    for (const uid of [...payerIds, ...shareIds]) {
-      if (!members.has(uid)) return reply.code(400).send({ error: "Ktoś spoza grupy w wydatku" });
-    }
+    const validationError = expensePayloadError(data, await memberIds(groupId));
+    if (validationError) return reply.code(400).send({ error: validationError });
 
     const expense = await prisma.expense.create({
       data: {
@@ -115,6 +118,59 @@ export async function expenseRoutes(app: FastifyInstance) {
       },
     });
     return reply.code(201).send({ expense });
+  });
+
+  app.get("/:groupId/expenses/:expenseId", async (req, reply) => {
+    const { groupId, expenseId } = req.params as { groupId: string; expenseId: string };
+    if (!(await assertMember(groupId, req.authUser!.id, reply))) return;
+    const expense = await prisma.expense.findFirst({
+      where: { id: expenseId, groupId },
+      include: {
+        payers: { include: { user: { select: { id: true, displayName: true } } } },
+        shares: { include: { user: { select: { id: true, displayName: true } } } },
+      },
+    });
+    if (!expense) return reply.code(404).send({ error: "Nie ma takiego wydatku" });
+    return { expense };
+  });
+
+  app.put("/:groupId/expenses/:expenseId", async (req, reply) => {
+    const { groupId, expenseId } = req.params as { groupId: string; expenseId: string };
+    if (!(await assertMember(groupId, req.authUser!.id, reply))) return;
+
+    const exists = await prisma.expense.findFirst({ where: { id: expenseId, groupId } });
+    if (!exists) return reply.code(404).send({ error: "Nie ma takiego wydatku" });
+
+    const parsed = createExpenseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "Błędne dane", details: z.treeifyError(parsed.error) });
+    }
+    const data = parsed.data;
+
+    const validationError = expensePayloadError(data, await memberIds(groupId));
+    if (validationError) return reply.code(400).send({ error: validationError });
+
+    // Edycja = podmiana pozycji. Kasujemy stare payers/shares i wstawiamy nowe,
+    // wszystko w jednej transakcji żeby nie zostawić niespójnego stanu.
+    const [, , expense] = await prisma.$transaction([
+      prisma.expensePayer.deleteMany({ where: { expenseId } }),
+      prisma.expenseShare.deleteMany({ where: { expenseId } }),
+      prisma.expense.update({
+        where: { id: expenseId },
+        data: {
+          description: data.description,
+          amountMinor: data.amountMinor,
+          currency: data.currency,
+          rateToBase: data.rateToBase,
+          splitMethod: data.splitMethod,
+          date: data.date ?? exists.date,
+          category: data.category,
+          payers: { create: data.payers.map((p) => ({ userId: p.userId, amountMinor: p.amountMinor })) },
+          shares: { create: data.shares.map((s) => ({ userId: s.userId, amountMinor: s.amountMinor })) },
+        },
+      }),
+    ]);
+    return reply.send({ expense });
   });
 
   app.delete("/:groupId/expenses/:expenseId", async (req, reply) => {

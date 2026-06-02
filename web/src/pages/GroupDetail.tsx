@@ -76,19 +76,21 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
       {expenses.map((e) => {
         const payerNames = e.payers.map((p) => p.user?.displayName).filter(Boolean).join(", ");
         return (
-          <div key={e.id} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-slate-800">{e.description}</p>
-              <p className="truncate text-xs text-slate-400">
-                {payerNames} zapłacił{e.payers.length > 1 ? "i" : ""} · dzielone na {e.shares.length}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-semibold tabular-nums text-slate-800">{formatMoney(e.amountMinor, e.currency)}</p>
-              {e.currency !== baseCurrency && (
-                <p className="text-xs text-slate-400">≈ {formatMoney(Math.round(e.amountMinor * e.rateToBase), baseCurrency)}</p>
-              )}
-            </div>
+          <div key={e.id} className="flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
+            <Link to={`/groups/${groupId}/expenses/${e.id}/edit`} className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-slate-800">{e.description}</p>
+                <p className="truncate text-xs text-slate-400">
+                  {payerNames} zapłacił{e.payers.length > 1 ? "i" : ""} · dzielone na {e.shares.length}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold tabular-nums text-slate-800">{formatMoney(e.amountMinor, e.currency)}</p>
+                {e.currency !== baseCurrency && (
+                  <p className="text-xs text-slate-400">≈ {formatMoney(Math.round(e.amountMinor * e.rateToBase), baseCurrency)}</p>
+                )}
+              </div>
+            </Link>
             <button
               onClick={() => { if (confirm(`Usunąć "${e.description}"?`)) del.mutate(e.id); }}
               className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500" aria-label="Usuń"

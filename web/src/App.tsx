@@ -40,6 +40,7 @@ export default function App() {
       <Route path="/groups/new" element={<Protected><NewGroup /></Protected>} />
       <Route path="/groups/:id" element={<Protected><GroupDetail /></Protected>} />
       <Route path="/groups/:id/expenses/new" element={<Protected><AddExpense /></Protected>} />
+      <Route path="/groups/:id/expenses/:expenseId/edit" element={<Protected><AddExpense /></Protected>} />
       <Route path="/join" element={<Protected><JoinGroup /></Protected>} />
       <Route path="/join/:code" element={<Protected><JoinGroup /></Protected>} />
 
