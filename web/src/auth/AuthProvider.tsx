@@ -8,6 +8,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, displayName: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (displayName: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,6 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post("/auth/logout");
       qc.setQueryData(["me"], null);
       qc.clear();
+    },
+    updateProfile: async (displayName) => {
+      const res = await api.patch<{ user: User }>("/auth/me", { displayName });
+      refresh(res.user);
+    },
+    changePassword: async (currentPassword, newPassword) => {
+      await api.post("/auth/change-password", { currentPassword, newPassword });
     },
   };
 

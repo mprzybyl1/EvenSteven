@@ -14,6 +14,15 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const updateMeSchema = z.object({
+  displayName: z.string().trim().min(1).max(60),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8, "Hasło min. 8 znaków").max(200),
+});
+
 function publicUser(u: { id: string; email: string; displayName: string }) {
   return { id: u.id, email: u.email, displayName: u.displayName };
 }
@@ -68,5 +77,28 @@ export async function authRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { id: req.authUser!.id } });
     if (!user) return reply.code(401).send({ error: "Nie znaleziono konta" });
     return reply.send({ user: publicUser(user) });
+  });
+
+  app.patch("/me", { preHandler: app.requireAuth }, async (req, reply) => {
+    const parsed = updateMeSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Błędne dane" });
+    const user = await prisma.user.update({
+      where: { id: req.authUser!.id },
+      data: { displayName: parsed.data.displayName },
+    });
+    return reply.send({ user: publicUser(user) });
+  });
+
+  app.post("/change-password", { preHandler: app.requireAuth }, async (req, reply) => {
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Hasło min. 8 znaków" });
+
+    const user = await prisma.user.findUnique({ where: { id: req.authUser!.id } });
+    if (!user) return reply.code(401).send({ error: "Nie znaleziono konta" });
+    if (!(await verifyPassword(user.passwordHash, parsed.data.currentPassword))) {
+      return reply.code(400).send({ error: "Aktualne hasło jest błędne" });
+    }
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(parsed.data.newPassword) } });
+    return reply.send({ ok: true });
   });
 }

@@ -4,16 +4,16 @@ import { useGroups } from "../lib/groups";
 import { AppHeader } from "../components/AppHeader";
 
 export function Groups() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { data: groups, isLoading } = useGroups();
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col">
       <AppHeader
         right={
-          <button onClick={() => logout()} className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100">
-            Wyloguj
-          </button>
+          <Link to="/profile" className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white" aria-label="Profil">
+            {(user?.displayName ?? "?").charAt(0).toUpperCase()}
+          </Link>
         }
       />
 

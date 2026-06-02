@@ -9,6 +9,7 @@ import { GroupDetail } from "./pages/GroupDetail";
 import { GroupSettings } from "./pages/GroupSettings";
 import { AddExpense } from "./pages/AddExpense";
 import { JoinGroup } from "./pages/JoinGroup";
+import { Profile } from "./pages/Profile";
 
 function Splash() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/groups/:id/settings" element={<Protected><GroupSettings /></Protected>} />
       <Route path="/groups/:id/expenses/new" element={<Protected><AddExpense /></Protected>} />
       <Route path="/groups/:id/expenses/:expenseId/edit" element={<Protected><AddExpense /></Protected>} />
+      <Route path="/profile" element={<Protected><Profile /></Protected>} />
       <Route path="/join" element={<Protected><JoinGroup /></Protected>} />
       <Route path="/join/:code" element={<Protected><JoinGroup /></Protected>} />
 
