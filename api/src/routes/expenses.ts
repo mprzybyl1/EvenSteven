@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { simplifyDebts } from "../lib/debts.js";
 
 const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Kod waluty to 3 litery");
 
@@ -274,22 +275,8 @@ export async function expenseRoutes(app: FastifyInstance) {
       amountMinor,
     }));
 
-    // "Kto komu ile" — zachłanne wyrównanie: najwięksi dłużnicy płacą największym wierzycielom.
-    const debtors = balances.filter((b) => b.amountMinor < 0).map((b) => ({ ...b, rem: -b.amountMinor })).sort((a, b) => b.rem - a.rem);
-    const creditors = balances.filter((b) => b.amountMinor > 0).map((b) => ({ ...b, rem: b.amountMinor })).sort((a, b) => b.rem - a.rem);
-    const transactions: { fromUserId: string; fromName: string; toUserId: string; toName: string; amountMinor: number }[] = [];
-    let di = 0, ci = 0;
-    while (di < debtors.length && ci < creditors.length) {
-      const d = debtors[di], c = creditors[ci];
-      const pay = Math.min(d.rem, c.rem);
-      if (pay > 0) {
-        transactions.push({ fromUserId: d.userId, fromName: d.displayName, toUserId: c.userId, toName: c.displayName, amountMinor: pay });
-        d.rem -= pay;
-        c.rem -= pay;
-      }
-      if (d.rem === 0) di++;
-      if (c.rem === 0) ci++;
-    }
+    // "Kto komu ile" — minimalizacja liczby przelewów (z bezpiecznikiem dla wielkich grup).
+    const transactions = simplifyDebts(balances);
 
     return { baseCurrency: group.baseCurrency, balances, transactions };
   });
