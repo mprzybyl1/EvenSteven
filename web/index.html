@@ -7,6 +7,16 @@
     <meta name="theme-color" content="#3AA6D0" />
     <meta name="description" content="EvenSteven — dziel koszty wyjazdu po równo (albo i nie)" />
     <title>EvenSteven</title>
+    <script>
+      // Ustaw motyw zanim strona się wyrenderuje (brak mignięcia jasnym).
+      (function () {
+        try {
+          var t = localStorage.getItem("es-theme") || "system";
+          var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

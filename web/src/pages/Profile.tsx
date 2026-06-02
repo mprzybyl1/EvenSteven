@@ -3,10 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { useAuth } from "../auth/AuthProvider";
 import { disablePush, enablePush, getPushSubscription, isStandalone, pushSupported } from "../lib/push";
+import { getTheme, setTheme, type Theme } from "../lib/theme";
 
 export function Profile() {
   const { user, updateProfile, changePassword, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Motyw
+  const [theme, setThemeState] = useState<Theme>(getTheme());
+  function chooseTheme(t: Theme) {
+    setTheme(t);
+    setThemeState(t);
+  }
 
   // Powiadomienia push
   const [pushOn, setPushOn] = useState(false);
@@ -116,6 +124,21 @@ export function Profile() {
           <button onClick={savePassword} disabled={pwBusy || !currentPassword || !newPassword} className="rounded-xl border border-slate-200 py-3 font-semibold text-slate-700 disabled:opacity-50">
             {pwBusy ? "Zmieniam…" : "Zmień hasło"}
           </button>
+        </section>
+
+        {/* Wygląd */}
+        <section className="flex flex-col gap-2 border-t border-slate-100 pt-5">
+          <h2 className="text-sm font-semibold text-slate-600">Wygląd</h2>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+            {([["system", "System"], ["light", "Jasny"], ["dark", "Ciemny"]] as const).map(([key, label]) => (
+              <button
+                key={key} onClick={() => chooseTheme(key)}
+                className={`rounded-lg py-2 text-sm font-medium transition ${theme === key ? "bg-white text-brand-ink shadow-sm" : "text-slate-500"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Powiadomienia */}

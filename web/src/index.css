@@ -16,11 +16,69 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-brand-bg);
-  color: #0f172a;
+  background: var(--es-bg);
+  color: var(--es-ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* --- Motyw: semantyczne kolory (jasny domyślnie) --- */
+:root {
+  --es-bg: #f5f9fb;        /* tło strony */
+  --es-surface: #ffffff;   /* karty */
+  --es-surface-2: #f1f5f9; /* subtelne wypełnienia / chipy */
+  --es-surface-3: #1e293b; /* mocny akcent (toast) */
+  --es-ink: #0f172a;       /* tekst główny */
+  --es-muted: #475569;     /* tekst drugorzędny */
+  --es-muted-2: #94a3b8;   /* tekst trzeciorzędny / ikony */
+  --es-line: #e2e8f0;      /* obramowania */
+}
+
+/* --- Dark mode: przemapowanie używanych klas Tailwinda pod .dark --- */
+/* Te reguły są bez @layer, więc biją utility Tailwinda niezależnie od specyficzności. */
+.dark {
+  color-scheme: dark;
+  --es-bg: #0b1220;
+  --es-surface: #131c2e;
+  --es-surface-2: #1e293b;
+  --es-surface-3: #334155;
+  --es-ink: #f1f5f9;
+  --es-muted: #cbd5e1;
+  --es-muted-2: #94a3b8;
+  --es-line: #2a3650;
+}
+
+.dark .bg-white { background-color: var(--es-surface); }
+.dark .bg-slate-50,
+.dark .bg-slate-100 { background-color: var(--es-surface-2); }
+.dark .bg-slate-800 { background-color: var(--es-surface-3); } /* toast sukcesu */
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 { color: var(--es-ink); }
+.dark .text-slate-600,
+.dark .text-slate-500 { color: var(--es-muted); }
+.dark .text-slate-400,
+.dark .text-slate-300 { color: var(--es-muted-2); }
+
+.dark .border-slate-100,
+.dark .border-slate-200 { border-color: var(--es-line); }
+
+/* nagłówki marki nieco jaśniejsze dla kontrastu na ciemnym */
+.dark .text-brand-ink { color: #6cc1ea; }
+
+/* tinty stanów na ciemno (półprzezroczyste, żeby grały z tłem) */
+.dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.13); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.13); }
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.13); }
+.dark .text-green-700 { color: #86efac; }
+.dark .text-amber-800 { color: #fcd34d; }
+.dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.3); }
+.dark .border-red-200 { border-color: rgba(239, 68, 68, 0.35); }
+
+/* hover feedback na ciemno */
+.dark .hover\:bg-slate-100:hover { background-color: var(--es-surface-2); }
+.dark .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.13); }
 
 /* --- Animacje --- */
 @keyframes rise {

@@ -7,6 +7,9 @@ import App from "./App.tsx";
 import { AuthProvider } from "./auth/AuthProvider";
 import { ToastProvider } from "./components/Toast";
 import { ConfirmProvider } from "./components/Confirm";
+import { initTheme } from "./lib/theme";
+
+initTheme();
 
 const queryClient = new QueryClient();
 
