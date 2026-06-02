@@ -9,10 +9,16 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // Content-Type: application/json dokładamy TYLKO gdy wysyłamy body. Inaczej
+  // żądania bez ciała (logout, DELETE) dostają od Fastify 415 — deklarują JSON,
+  // a ciało puste.
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+  if (options.body != null) headers["Content-Type"] = "application/json";
+
   const res = await fetch(`/api${path}`, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
+    headers,
   });
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
