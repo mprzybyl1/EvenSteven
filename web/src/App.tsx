@@ -10,6 +10,7 @@ import { GroupSettings } from "./pages/GroupSettings";
 import { AddExpense } from "./pages/AddExpense";
 import { JoinGroup } from "./pages/JoinGroup";
 import { Profile } from "./pages/Profile";
+import { AppShell } from "./components/AppShell";
 
 function Splash() {
   return (
@@ -26,7 +27,7 @@ function Protected({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }
 
 export default function App() {

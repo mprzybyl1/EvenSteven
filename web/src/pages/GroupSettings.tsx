@@ -38,7 +38,7 @@ export function GroupSettings() {
   }, [group, prefilled]);
 
   if (isLoading || !group) {
-    return (<div className="mx-auto max-w-md"><AppHeader title="Ustawienia" back /><p className="px-4 py-6 text-slate-400">Ładuję…</p></div>);
+    return (<div className="mx-auto max-w-md lg:max-w-2xl"><AppHeader title="Ustawienia" back /><p className="px-4 py-6 text-slate-400">Ładuję…</p></div>);
   }
 
   const isOwner = group.members.find((m) => m.userId === user?.id)?.role === "owner";
@@ -77,7 +77,7 @@ export function GroupSettings() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
+    <div className="mx-auto flex min-h-full max-w-md flex-col lg:max-w-2xl">
       <AppHeader title="Ustawienia wyjazdu" back />
       <div className="flex flex-1 flex-col gap-6 px-4 py-5">
         {/* Edycja */}

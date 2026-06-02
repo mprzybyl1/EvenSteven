@@ -8,16 +8,18 @@ export function Groups() {
   const { data: groups, isLoading } = useGroups();
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
-      <AppHeader
-        right={
-          <Link to="/profile" className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white" aria-label="Profil">
-            {(user?.displayName ?? "?").charAt(0).toUpperCase()}
-          </Link>
-        }
-      />
+    <div className="mx-auto flex min-h-full max-w-md flex-col lg:max-w-2xl">
+      <div className="lg:hidden">
+        <AppHeader
+          right={
+            <Link to="/profile" className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white" aria-label="Profil">
+              {(user?.displayName ?? "?").charAt(0).toUpperCase()}
+            </Link>
+          }
+        />
+      </div>
 
-      <div className="flex-1 px-4 py-5">
+      <div className="flex-1 px-4 py-5 lg:px-8 lg:py-8">
         <p className="text-sm text-slate-500">Cześć, {user?.displayName} 👋</p>
         <h1 className="mb-5 text-2xl font-bold text-slate-800">Twoje wyjazdy</h1>
 
@@ -55,7 +57,7 @@ export function Groups() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white/90 p-4 backdrop-blur">
+      <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white/90 p-4 backdrop-blur lg:hidden">
         <Link to="/join" className="flex-1 rounded-xl border border-slate-200 py-3 text-center font-semibold text-slate-600">
           Dołącz przez link
         </Link>

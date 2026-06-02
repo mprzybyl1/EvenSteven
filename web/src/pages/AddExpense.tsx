@@ -186,7 +186,7 @@ export function AddExpense() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
+    <div className="mx-auto flex min-h-full max-w-md flex-col lg:max-w-2xl">
       <AppHeader title={isEdit ? "Edytuj wydatek" : "Nowy wydatek"} back />
       <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4 py-5">
         <input className={input} placeholder="Na co? np. Pizza" value={description} maxLength={120} onChange={(e) => setDescription(e.target.value)} />
