@@ -93,8 +93,13 @@ Zasada spójności: `suma(payers) == suma(shares) == amountMinor`.
 - [x] **Multi-waluta** w UI (kurs ręczny per wydatek)
 - [x] **Multi-płatnik** w UI (tryb Jeden / Kilku płatników)
 - [x] **Edycja wydatku** (klik w wydatek na liście)
-- [ ] **Uproszczenie długów** — minimalna liczba przelewów (teraz zachłanne)
-- [ ] Itemized splits, auto-kursy walut, kategorie, eksport
+- [x] **Uproszczenie długów** — minimalna liczba przelewów (backtracking + fallback)
+- [x] **Ręczne spłaty** + usuwanie spłat
+- [x] **Zarządzanie grupą** — edycja, usuwanie, opuszczanie, wyrzucanie członka
+- [x] **Kategorie wydatków** (z ikonami + podsumowanie wg kategorii)
+- [x] **Konto** — profil, zmiana ksywki i hasła
+- [ ] UI polish (drobne poprawki wyglądu/UX)
+- [ ] Itemized splits, auto-kursy walut, eksport CSV
 - [ ] Wdrożenie na VPS (Docker + Caddy + Postgres)
 
 ## Wdrożenie (skrót — później)
