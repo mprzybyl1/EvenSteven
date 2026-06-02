@@ -53,6 +53,42 @@ export function useCreateGroup() {
   });
 }
 
+export function useUpdateGroup(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; description?: string | null; baseCurrency: string }) =>
+      api.patch(`/groups/${groupId}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["groups", groupId] });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) => api.del(`/groups/${groupId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+export function useLeaveGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: string) => api.post(`/groups/${groupId}/leave`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+export function useRemoveMember(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => api.del(`/groups/${groupId}/members/${userId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", groupId] }),
+  });
+}
+
 export function useInvitePreview(code: string) {
   return useQuery({
     queryKey: ["invite", code],

@@ -6,6 +6,7 @@ import { Register } from "./pages/Register";
 import { Groups } from "./pages/Groups";
 import { NewGroup } from "./pages/NewGroup";
 import { GroupDetail } from "./pages/GroupDetail";
+import { GroupSettings } from "./pages/GroupSettings";
 import { AddExpense } from "./pages/AddExpense";
 import { JoinGroup } from "./pages/JoinGroup";
 
@@ -39,6 +40,7 @@ export default function App() {
       <Route path="/" element={<Protected><Groups /></Protected>} />
       <Route path="/groups/new" element={<Protected><NewGroup /></Protected>} />
       <Route path="/groups/:id" element={<Protected><GroupDetail /></Protected>} />
+      <Route path="/groups/:id/settings" element={<Protected><GroupSettings /></Protected>} />
       <Route path="/groups/:id/expenses/new" element={<Protected><AddExpense /></Protected>} />
       <Route path="/groups/:id/expenses/:expenseId/edit" element={<Protected><AddExpense /></Protected>} />
       <Route path="/join" element={<Protected><JoinGroup /></Protected>} />
