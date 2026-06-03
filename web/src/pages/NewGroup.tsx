@@ -25,7 +25,7 @@ export function NewGroup() {
   const input = "rounded-xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30";
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
+    <div className="mx-auto flex min-h-full max-w-md flex-col lg:max-w-2xl">
       <AppHeader title="Nowy wyjazd" back />
       <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4 py-6">
         <label className="flex flex-col gap-1.5">

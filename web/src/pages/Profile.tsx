@@ -90,7 +90,7 @@ export function Profile() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
+    <div className="mx-auto flex min-h-full max-w-md flex-col lg:max-w-2xl">
       <AppHeader title="Profil" back />
       <div className="flex flex-1 flex-col gap-6 px-4 py-5">
         {/* Nagłówek konta */}
