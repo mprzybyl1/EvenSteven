@@ -83,6 +83,7 @@ body {
 .dark .border-red-200 { border-color: rgba(239, 68, 68, 0.35); }
 
 /* hover feedback na ciemno */
+.dark .hover\:bg-slate-50:hover,
 .dark .hover\:bg-slate-100:hover { background-color: var(--es-surface-2); }
 .dark .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.13); }
 

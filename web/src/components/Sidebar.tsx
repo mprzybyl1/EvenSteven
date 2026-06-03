@@ -49,7 +49,7 @@ export function Sidebar() {
               to={`/groups/${g.id}`}
               className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-brand-blue/10 text-brand-ink" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"}`}
             >
-              <span className="truncate">{g.name}</span>
+              <span className="truncate">{g.emoji ? g.emoji + " " : ""}{g.name}</span>
               <span className="ml-2 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{g.baseCurrency}</span>
             </Link>
           );
