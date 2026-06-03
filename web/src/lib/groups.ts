@@ -15,9 +15,12 @@ export interface GroupListItem {
 export interface GroupMember {
   userId: string;
   displayName: string;
-  email: string;
+  email: string | null;
   role: string;
   joinedAt: string;
+  isPlaceholder?: boolean;
+  // Link do przejęcia konta — tylko dla widm (niezarejestrowanych).
+  claimUrl?: string | null;
 }
 
 export interface GroupDetail {
@@ -87,6 +90,26 @@ export function useRemoveMember(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => api.del(`/groups/${groupId}/members/${userId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", groupId] }),
+  });
+}
+
+// Dodanie uczestnika po imieniu (konto-widmo) albo dorzucenie istniejącego po e-mailu.
+export function useAddMember(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; email?: string }) =>
+      api.post<{ member: GroupMember; invited: boolean }>(`/groups/${groupId}/members`, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", groupId] }),
+  });
+}
+
+// (Po)wysłanie zaproszenia do konta-widma na e-mail. Zwraca też link do skopiowania ręcznie.
+export function useInviteMember(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, email }: { userId: string; email: string }) =>
+      api.post<{ sent: boolean; claimUrl: string }>(`/groups/${groupId}/members/${userId}/invite`, { email }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", groupId] }),
   });
 }

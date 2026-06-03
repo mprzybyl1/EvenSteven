@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
 import { useAuth } from "../auth/AuthProvider";
-import { useGroup, type GroupMember } from "../lib/groups";
+import { useGroup, useAddMember, useInviteMember, type GroupMember } from "../lib/groups";
 import {
   useBalances, useCreateSettlement, useDeleteExpense, useDeleteSettlement, useExpenses, useSettlements,
   type SettleTx,
@@ -63,7 +63,7 @@ export function GroupDetail() {
       <div className="flex-1 px-4 py-4 lg:px-8 lg:py-6">
         {tab === "expenses" && <ExpensesTab groupId={id} baseCurrency={group.baseCurrency} />}
         {tab === "balances" && <BalancesTab groupId={id} members={group.members} />}
-        {tab === "team" && <TeamTab inviteCode={group.inviteCode} members={group.members} />}
+        {tab === "team" && <TeamTab groupId={id} inviteCode={group.inviteCode} members={group.members} />}
       </div>
 
       {tab === "expenses" && (
@@ -352,38 +352,114 @@ function ManualSettleForm({
   );
 }
 
-function TeamTab({ inviteCode, members }: { inviteCode: string; members: { userId: string; displayName: string; email: string; role: string }[] }) {
+function TeamTab({ groupId, inviteCode, members }: { groupId: string; inviteCode: string; members: GroupMember[] }) {
   const [copied, setCopied] = useState(false);
   const inviteUrl = `${window.location.origin}/join/${inviteCode}`;
+  const toast = useToast();
+
+  const addMember = useAddMember(groupId);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
   async function copyInvite() {
     try { await navigator.clipboard.writeText(inviteUrl); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ }
   }
 
+  async function onAdd(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    try {
+      const res = await addMember.mutateAsync({ name: name.trim(), email: email.trim() || undefined });
+      setName(""); setEmail("");
+      toast.success(res.invited ? "Dodano i wysłano zaproszenie ✉️" : "Dodano do ekipy ✓");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nie udało się");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-600">Zaproś ekipę</h2>
+        <h2 className="mb-2 text-sm font-semibold text-slate-600">Zaproś ekipę linkiem</h2>
         <div className="flex gap-2">
           <input readOnly value={inviteUrl} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600" />
           <button onClick={copyInvite} className="bg-brand-gradient shrink-0 rounded-xl px-4 text-sm font-semibold text-white">{copied ? "Skopiowano!" : "Kopiuj"}</button>
         </div>
       </section>
+
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-slate-600">Dodaj osobę ręcznie</h2>
+        <p className="mb-2 text-xs text-slate-400">Możesz wpisać kogoś po samym imieniu — nawet jeśli nie ma jeszcze konta. Podasz e-mail → wyślemy mu zaproszenie.</p>
+        <form onSubmit={onAdd} className="flex flex-col gap-2">
+          <input value={name} maxLength={60} placeholder="Imię / ksywka" onChange={(e) => setName(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-blue" />
+          <div className="flex gap-2">
+            <input value={email} type="email" placeholder="E-mail (opcjonalnie)" onChange={(e) => setEmail(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-blue" />
+            <button type="submit" disabled={addMember.isPending || !name.trim()} className="bg-brand-gradient shrink-0 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-50">
+              {addMember.isPending ? "…" : "Dodaj"}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section>
         <h2 className="mb-2 text-sm font-semibold text-slate-600">Ekipa ({members.length})</h2>
         <div className="flex flex-col gap-2">
-          {members.map((m) => (
-            <div key={m.userId} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
-              <div className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white">{m.displayName.charAt(0).toUpperCase()}</div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-slate-800">{m.displayName}</p>
-                <p className="truncate text-xs text-slate-400">{m.email}</p>
-              </div>
-              {m.role === "owner" && <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-xs font-semibold text-brand-green">właściciel</span>}
-            </div>
-          ))}
+          {members.map((m) => <MemberRow key={m.userId} groupId={groupId} member={m} />)}
         </div>
       </section>
+    </div>
+  );
+}
+
+function MemberRow({ groupId, member: m }: { groupId: string; member: GroupMember }) {
+  const toast = useToast();
+  const invite = useInviteMember(groupId);
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(m.email ?? "");
+
+  async function copyLink() {
+    if (!m.claimUrl) return;
+    try { await navigator.clipboard.writeText(m.claimUrl); toast.success("Link skopiowany ✓"); } catch { /* ignore */ }
+  }
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    try {
+      const res = await invite.mutateAsync({ userId: m.userId, email: email.trim() });
+      setOpen(false);
+      toast.success(res.sent ? "Zaproszenie wysłane ✉️" : "Mail wyłączony — link skopiowany");
+      if (!res.sent && res.claimUrl) { try { await navigator.clipboard.writeText(res.claimUrl); } catch { /* ignore */ } }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nie udało się");
+    }
+  }
+
+  return (
+    <div className="rounded-xl bg-white p-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${m.isPlaceholder ? "bg-slate-300" : "bg-brand-gradient"}`}>{m.displayName.charAt(0).toUpperCase()}</div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-slate-800">{m.displayName}</p>
+          <p className="truncate text-xs text-slate-400">{m.email ?? (m.isPlaceholder ? "bez konta" : "")}</p>
+        </div>
+        {m.role === "owner" && <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-xs font-semibold text-brand-green">właściciel</span>}
+        {m.isPlaceholder && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">niezarejestrowany</span>}
+      </div>
+
+      {m.isPlaceholder && (
+        <div className="mt-2 flex flex-wrap gap-2 pl-12">
+          {m.claimUrl && <button onClick={copyLink} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Kopiuj link</button>}
+          <button onClick={() => setOpen((o) => !o)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">{open ? "Anuluj" : "Zaproś mailem"}</button>
+        </div>
+      )}
+
+      {m.isPlaceholder && open && (
+        <form onSubmit={send} className="mt-2 flex gap-2 pl-12">
+          <input value={email} type="email" placeholder="E-mail" onChange={(e) => setEmail(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-brand-blue" />
+          <button type="submit" disabled={invite.isPending || !email.trim()} className="bg-brand-gradient shrink-0 rounded-lg px-3 text-sm font-semibold text-white disabled:opacity-50">{invite.isPending ? "…" : "Wyślij"}</button>
+        </form>
+      )}
     </div>
   );
 }

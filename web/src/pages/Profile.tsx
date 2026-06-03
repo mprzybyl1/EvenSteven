@@ -4,6 +4,9 @@ import { AppHeader } from "../components/AppHeader";
 import { useAuth } from "../auth/AuthProvider";
 import { disablePush, enablePush, getPushSubscription, isStandalone, pushSupported } from "../lib/push";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
+import { useTokens, useCreateToken, useDeleteToken } from "../lib/tokens";
+import { useConfirm } from "../components/Confirm";
+import { useToast } from "../components/Toast";
 
 export function Profile() {
   const { user, updateProfile, changePassword, logout } = useAuth();
@@ -168,6 +171,11 @@ export function Profile() {
           )}
         </section>
 
+        {/* Integracje / tokeny API */}
+        <section className="flex flex-col gap-2 border-t border-slate-100 pt-5">
+          <TokensSection />
+        </section>
+
         {/* Wyloguj */}
         <section className="mt-auto border-t border-slate-100 pt-5">
           <button onClick={onLogout} className="w-full rounded-xl border border-red-200 py-3 font-semibold text-red-600 hover:bg-red-50">
@@ -176,5 +184,89 @@ export function Profile() {
         </section>
       </div>
     </div>
+  );
+}
+
+// Osobiste tokeny API — do integracji zewnętrznych (np. agent AI dopisujący wydatki).
+function TokensSection() {
+  const { data: tokens, isLoading } = useTokens();
+  const createToken = useCreateToken();
+  const deleteToken = useDeleteToken();
+  const confirm = useConfirm();
+  const toast = useToast();
+
+  const [name, setName] = useState("");
+  const [fresh, setFresh] = useState<string | null>(null); // świeżo wygenerowany plaintext (pokazany raz)
+
+  async function generate() {
+    if (!name.trim()) return;
+    try {
+      const res = await createToken.mutateAsync(name.trim());
+      setFresh(res.token);
+      setName("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nie udało się");
+    }
+  }
+
+  async function copyFresh() {
+    if (!fresh) return;
+    try { await navigator.clipboard.writeText(fresh); toast.success("Token skopiowany ✓"); } catch { /* ignore */ }
+  }
+
+  async function revoke(id: string, label: string) {
+    const ok = await confirm({ title: "Odwołać token?", message: `Token „${label}" przestanie działać. Integracje, które go używają, stracą dostęp.`, confirmText: "Odwołaj", danger: true });
+    if (!ok) return;
+    try { await deleteToken.mutateAsync(id); toast.success("Token odwołany"); } catch { toast.error("Nie udało się"); }
+  }
+
+  const input = "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-blue";
+
+  return (
+    <>
+      <h2 className="text-sm font-semibold text-slate-600">Tokeny API (integracje)</h2>
+      <p className="text-xs text-slate-400">
+        Token pozwala zewnętrznej automatyzacji (np. botowi dopisującemu wydatki) działać na Twoim koncie. Wysyłaj go w nagłówku <code className="rounded bg-slate-100 px-1">Authorization: Bearer …</code>
+      </p>
+
+      {/* Świeżo wygenerowany token — widoczny RAZ */}
+      {fresh && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="mb-1 text-xs font-semibold text-amber-800">Skopiuj teraz — nie pokażemy go ponownie!</p>
+          <div className="flex gap-2">
+            <input readOnly value={fresh} className="min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-2 py-1.5 font-mono text-xs text-slate-700" />
+            <button onClick={copyFresh} className="bg-brand-gradient shrink-0 rounded-lg px-3 text-sm font-semibold text-white">Kopiuj</button>
+          </div>
+          <button onClick={() => setFresh(null)} className="mt-2 text-xs font-medium text-amber-800 underline">Zapisałem, schowaj</button>
+        </div>
+      )}
+
+      {/* Generowanie */}
+      <div className="flex gap-2">
+        <input value={name} maxLength={60} placeholder="Nazwa, np. Agent squash" onChange={(e) => setName(e.target.value)} className={`min-w-0 flex-1 ${input}`} />
+        <button onClick={generate} disabled={createToken.isPending || !name.trim()} className="bg-brand-gradient shrink-0 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-50">
+          {createToken.isPending ? "…" : "Wygeneruj"}
+        </button>
+      </div>
+
+      {/* Lista */}
+      {isLoading ? (
+        <p className="text-xs text-slate-400">Ładuję…</p>
+      ) : tokens && tokens.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          {tokens.map((t) => (
+            <div key={t.id} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-slate-800">{t.name}</p>
+                <p className="truncate font-mono text-xs text-slate-400">{t.prefix}… · {t.lastUsedAt ? "użyty " + new Date(t.lastUsedAt).toLocaleDateString("pl-PL") : "nieużywany"}</p>
+              </div>
+              <button onClick={() => revoke(t.id, t.name)} className="shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">Odwołaj</button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400">Brak tokenów.</p>
+      )}
+    </>
   );
 }

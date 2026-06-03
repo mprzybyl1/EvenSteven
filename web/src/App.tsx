@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "./auth/AuthProvider";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { Claim } from "./pages/Claim";
 import { Groups } from "./pages/Groups";
 import { NewGroup } from "./pages/NewGroup";
 import { GroupDetail } from "./pages/GroupDetail";
@@ -38,6 +39,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+      {/* Przejęcie konta-widma — publiczne, dostępne bez logowania. */}
+      <Route path="/claim/:token" element={<Claim />} />
 
       <Route path="/" element={<Protected><Groups /></Protected>} />
       <Route path="/groups/new" element={<Protected><NewGroup /></Protected>} />
