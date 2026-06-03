@@ -113,6 +113,10 @@ Chcesz, żeby skrypt / agent AI dopisywał wydatki sam (np. z czatu)? Wygeneruj
 widzisz **raz** — skopiuj go od razu. Działa "jako Ty" (pełny dostęp do Twoich
 grup), dlatego trzymaj go w sekrecie i odwołaj, gdy przecieknie.
 
+📖 **Interaktywna dokumentacja (Swagger UI): `/api/docs`** — wszystkie endpointy z payloadami,
+„Try it out" działa na żywo. Kliknij **Authorize** i wklej token (`Bearer`), żeby
+testować chronione trasy. Dev: <http://localhost:3001/api/docs>, prod: `https://twoja-domena/api/docs`.
+
 Token wysyłasz w nagłówku `Authorization: Bearer es_pat_…`. Wszystkie endpointy
 aplikacji są dostępne tak samo jak z przeglądarki. Najważniejsze do automatyzacji:
 

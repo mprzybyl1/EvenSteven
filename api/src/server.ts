@@ -2,7 +2,10 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 import { env, isProd } from "./env.js";
+import { openapiDocument } from "./openapi.js";
 import { authPlugin } from "./auth/plugin.js";
 import { authRoutes } from "./auth/routes.js";
 import { groupRoutes } from "./routes/groups.js";
@@ -21,6 +24,15 @@ const app = Fastify({
 await app.register(helmet, { contentSecurityPolicy: false }); // CSP ustawimy gdy front gotowy
 await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true }); // credentials -> cookie przechodzi
 await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });
+
+// --- Dokumentacja API (Swagger UI pod /api/docs) ---
+// Tryb `static`: serwujemy ręcznie utrzymywany dokument z openapi.ts (trasy walidują
+// przez Zod w handlerach, więc nie generujemy spec automatycznie z kodu).
+await app.register(swagger, { mode: "static", specification: { document: openapiDocument as never } });
+await app.register(swaggerUi, {
+  routePrefix: "/api/docs",
+  uiConfig: { docExpansion: "list", deepLinking: true, persistAuthorization: true },
+});
 
 // --- Auth (cookie + jwt + strażnik) ---
 await app.register(authPlugin);
