@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { useGroups } from "../lib/groups";
 import { AppHeader } from "../components/AppHeader";
+import { Avatar } from "../components/Avatar";
 
 export function Groups() {
   const { user } = useAuth();
@@ -12,8 +13,8 @@ export function Groups() {
       <div className="lg:hidden">
         <AppHeader
           right={
-            <Link to="/profile" className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white" aria-label="Profil">
-              {(user?.displayName ?? "?").charAt(0).toUpperCase()}
+            <Link to="/profile" className="block" aria-label="Profil">
+              <Avatar emoji={user?.avatarEmoji} name={user?.displayName} className="h-9 w-9 text-sm" />
             </Link>
           }
         />

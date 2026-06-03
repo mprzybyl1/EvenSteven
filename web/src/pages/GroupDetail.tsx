@@ -12,6 +12,7 @@ import { categoryMeta } from "../lib/categories";
 import { formatDate, dayKey } from "../lib/dates";
 import { useConfirm } from "../components/Confirm";
 import { useToast } from "../components/Toast";
+import { Avatar } from "../components/Avatar";
 
 type Tab = "expenses" | "balances" | "team";
 
@@ -438,7 +439,7 @@ function MemberRow({ groupId, member: m }: { groupId: string; member: GroupMembe
   return (
     <div className="rounded-xl bg-white p-3 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${m.isPlaceholder ? "bg-slate-300" : "bg-brand-gradient"}`}>{m.displayName.charAt(0).toUpperCase()}</div>
+        <Avatar emoji={m.avatarEmoji} name={m.displayName} placeholder={m.isPlaceholder} className="h-9 w-9 text-sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-slate-800">{m.displayName}</p>
           <p className="truncate text-xs text-slate-400">{m.email ?? (m.isPlaceholder ? "bez konta" : "")}</p>

@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { useGroups } from "../lib/groups";
+import { Avatar } from "./Avatar";
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -28,9 +29,7 @@ export function Sidebar() {
         to="/profile"
         className={`mx-3 mt-3 flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition hover:bg-slate-50 ${location.pathname === "/profile" ? "bg-brand-blue/10" : ""}`}
       >
-        <div className="bg-brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white">
-          {(user?.displayName ?? "?").charAt(0).toUpperCase()}
-        </div>
+        <Avatar emoji={user?.avatarEmoji} name={user?.displayName} className="h-8 w-8 text-sm" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-slate-800">{user?.displayName}</p>
           <p className="truncate text-xs text-slate-400">{user?.email}</p>

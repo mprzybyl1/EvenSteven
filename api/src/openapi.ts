@@ -54,6 +54,7 @@ export const openapiDocument = {
           id: { type: "string", example: "cmpwingjc000094hwi3bos7cy" },
           email: { type: "string", nullable: true, example: "kazik@example.com" },
           displayName: { type: "string", example: "Kazik" },
+          avatarEmoji: { type: "string", nullable: true, example: "🦊" },
         },
       },
       Member: {
@@ -62,6 +63,7 @@ export const openapiDocument = {
           userId: { type: "string" },
           displayName: { type: "string" },
           email: { type: "string", nullable: true },
+          avatarEmoji: { type: "string", nullable: true },
           role: { type: "string", enum: ["owner", "member"] },
           joinedAt: { type: "string", format: "date-time" },
           isPlaceholder: { type: "boolean", description: "true = konto-widmo (niezarejestrowany)" },
@@ -175,8 +177,8 @@ export const openapiDocument = {
     "/api/auth/me": {
       get: { tags: ["Auth"], summary: "Dane zalogowanego", responses: { 200: { description: "OK", content: json("User") }, 401: err("Niezalogowany") } },
       patch: {
-        tags: ["Auth"], summary: "Zmiana ksywki",
-        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["displayName"], properties: { displayName: { type: "string" } } } } } },
+        tags: ["Auth"], summary: "Zmiana ksywki / emotki-avatara",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { displayName: { type: "string" }, avatarEmoji: { type: "string", nullable: true, description: "Emotka jako avatar; null/\"\" czyści" } } } } } },
         responses: { 200: { description: "OK", content: json("User") } },
       },
     },

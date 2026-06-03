@@ -43,6 +43,7 @@ export const api = {
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
+  avatarEmoji?: string | null;
 }

@@ -16,6 +16,7 @@ export interface GroupMember {
   userId: string;
   displayName: string;
   email: string | null;
+  avatarEmoji?: string | null;
   role: string;
   joinedAt: string;
   isPlaceholder?: boolean;

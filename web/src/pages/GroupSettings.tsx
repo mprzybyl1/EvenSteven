@@ -9,6 +9,7 @@ import { useExpenses } from "../lib/expenses";
 import { useConfirm } from "../components/Confirm";
 import { useToast } from "../components/Toast";
 import { EmojiPicker } from "../components/EmojiPicker";
+import { Avatar } from "../components/Avatar";
 
 export function GroupSettings() {
   const { id = "" } = useParams();
@@ -120,8 +121,8 @@ export function GroupSettings() {
           <div className="flex flex-col gap-2">
             {group.members.map((m) => (
               <div key={m.userId} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
-                <div className="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white">{m.displayName.charAt(0).toUpperCase()}</div>
-                <span className="flex-1 truncate text-slate-700">{m.displayName}{m.userId === user?.id ? " (Ty)" : ""}</span>
+                <Avatar emoji={m.avatarEmoji} name={m.displayName} placeholder={m.isPlaceholder} className="h-8 w-8 text-sm" />
+                <span className="flex-1 truncate text-slate-700">{m.displayName}{m.userId === user?.id ? " (Ty)" : ""}{m.isPlaceholder ? " 👻" : ""}</span>
                 {m.role === "owner" ? (
                   <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-xs font-semibold text-brand-green">właściciel</span>
                 ) : isOwner ? (

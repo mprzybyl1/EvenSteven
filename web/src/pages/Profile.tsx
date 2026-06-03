@@ -7,6 +7,8 @@ import { getTheme, setTheme, type Theme } from "../lib/theme";
 import { useTokens, useCreateToken, useDeleteToken } from "../lib/tokens";
 import { useConfirm } from "../components/Confirm";
 import { useToast } from "../components/Toast";
+import { Avatar } from "../components/Avatar";
+import { EmojiPicker, AVATAR_EMOJIS } from "../components/EmojiPicker";
 
 export function Profile() {
   const { user, updateProfile, changePassword, logout } = useAuth();
@@ -66,11 +68,23 @@ export function Profile() {
   async function saveName() {
     setNameMsg(null); setNameBusy(true);
     try {
-      await updateProfile(displayName.trim());
+      await updateProfile({ displayName: displayName.trim() });
       setNameMsg({ ok: true, text: "Zapisano ✓" });
     } catch (err) {
       setNameMsg({ ok: false, text: err instanceof Error ? err.message : "Nie udało się" });
     } finally { setNameBusy(false); }
+  }
+
+  // Avatar-emotka: zapisujemy od razu po wyborze (bez osobnego przycisku).
+  const toast = useToast();
+  const [avatarEmoji, setAvatarEmoji] = useState<string | null>(user?.avatarEmoji ?? null);
+  async function chooseAvatar(emoji: string | null) {
+    setAvatarEmoji(emoji);
+    try {
+      await updateProfile({ avatarEmoji: emoji });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nie udało się zapisać avatara");
+    }
   }
 
   async function savePassword() {
@@ -98,14 +112,19 @@ export function Profile() {
       <div className="flex flex-1 flex-col gap-6 px-4 py-5">
         {/* Nagłówek konta */}
         <div className="flex items-center gap-3">
-          <div className="bg-brand-gradient flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold text-white">
-            {(user?.displayName ?? "?").charAt(0).toUpperCase()}
-          </div>
+          <Avatar emoji={avatarEmoji} name={user?.displayName} className="h-14 w-14 text-2xl" />
           <div className="min-w-0">
             <p className="truncate text-lg font-bold text-slate-800">{user?.displayName}</p>
             <p className="truncate text-sm text-slate-400">{user?.email}</p>
           </div>
         </div>
+
+        {/* Avatar (emotka) */}
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-slate-600">Avatar</h2>
+          <p className="text-xs text-slate-400">Wybierz emotkę zamiast inicjału. Możesz też wpisać/wkleić własną.</p>
+          <EmojiPicker value={avatarEmoji} onChange={chooseAvatar} emojis={AVATAR_EMOJIS} />
+        </section>
 
         {/* Ksywka */}
         <section className="flex flex-col gap-2">

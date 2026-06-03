@@ -22,6 +22,7 @@ model User {
   // konta przez claimToken (wtedy dostaje e-mail+hasło, a cała historia długów zostaje).
   email         String?  @unique
   displayName   String
+  avatarEmoji   String? // opcjonalna emotka jako avatar (zamiast inicjału)
   passwordHash  String?
   isPlaceholder Boolean  @default(false)
   claimToken    String?  @unique // jednorazowy token do przejęcia konta-widma

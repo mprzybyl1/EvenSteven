@@ -7,11 +7,20 @@ const TRIP_EMOJIS = [
   "⛳", "🎿", "🥾", "🎸", "🎤", "🎮", "🎲", "🧳",
 ];
 
-export function EmojiPicker({ value, onChange }: { value: string | null; onChange: (emoji: string | null) => void }) {
+// Zestaw pod avatar — miny, zwierzaki, postacie. Też z opcją własnej.
+export const AVATAR_EMOJIS = [
+  "😎", "🤓", "🥳", "😴", "🤠", "🤖", "👻", "🦄",
+  "🦊", "🐱", "🐶", "🐻", "🐼", "🐸", "🦁", "🐯",
+  "🐵", "🦉", "🐺", "🐲", "🦖", "🐙", "🦀", "🐝",
+  "🧙", "🧛", "🦸", "🥷", "👽", "💀", "🤡", "🎃",
+  "⚡", "🔥", "🌟", "🍀", "💎", "🏆", "🎯", "🚀",
+];
+
+export function EmojiPicker({ value, onChange, emojis = TRIP_EMOJIS }: { value: string | null; onChange: (emoji: string | null) => void; emojis?: string[] }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-1.5">
-        {TRIP_EMOJIS.map((e) => (
+        {emojis.map((e) => (
           <button
             type="button" key={e} onClick={() => onChange(e)}
             className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl transition ${
