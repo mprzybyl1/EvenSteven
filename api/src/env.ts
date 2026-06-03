@@ -14,6 +14,12 @@ const schema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:admin@example.com"),
+  // Wysyłka maili przez Gmail SMTP (app-password). Bez kompletu — mail wyłączony.
+  GMAIL_USER: z.string().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
+  // Publiczny origin aplikacji webowej — do budowania linków w mailach (claim/zaproszenia).
+  // Na prodzie ustaw na adres strony, np. https://evensteven.twojadomena.pl
+  APP_ORIGIN: z.string().default("http://localhost:5173"),
 });
 
 const parsed = schema.safeParse(process.env);

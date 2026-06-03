@@ -2,7 +2,16 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import jwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
+import { createHash } from "node:crypto";
 import { env, isProd } from "../env.js";
+import { prisma } from "../db.js";
+
+// Prefiks osobistych tokenów API. Token = "es_pat_" + losowe bajty (base64url).
+export const PAT_PREFIX = "es_pat_";
+// Tokeny trzymamy w bazie tylko jako hash — szukamy po sha256(token).
+export function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 // Co trzymamy w tokenie (minimalnie — resztę dociągamy z bazy gdy trzeba).
 export interface AuthUser {
@@ -52,8 +61,29 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
     this.clearCookie(COOKIE_NAME, { path: "/" });
   });
 
-  // Strażnik chronionych tras.
+  // Strażnik chronionych tras. Dwa sposoby uwierzytelnienia:
+  //  1. Authorization: Bearer es_pat_...  -> osobisty token API (integracje, agent AI)
+  //  2. cookie es_token (JWT)             -> normalne logowanie z aplikacji
   app.decorate("requireAuth", async (req: FastifyRequest, reply: FastifyReply) => {
+    const header = req.headers.authorization;
+    if (header?.startsWith("Bearer ")) {
+      const token = header.slice(7).trim();
+      if (!token.startsWith(PAT_PREFIX)) {
+        return reply.code(401).send({ error: "Nieprawidłowy token API" });
+      }
+      const row = await prisma.apiToken.findUnique({
+        where: { tokenHash: hashToken(token) },
+        include: { user: { select: { id: true, email: true, isPlaceholder: true } } },
+      });
+      // Konto-widmo nie ma prawa działać przez token (nie powinno go mieć, ale na wszelki wypadek).
+      if (!row || row.user.isPlaceholder) {
+        return reply.code(401).send({ error: "Nieprawidłowy token API" });
+      }
+      req.authUser = { id: row.user.id, email: row.user.email ?? "" };
+      // Odśwież "ostatnio użyty" — fire-and-forget, nie blokujemy odpowiedzi.
+      void prisma.apiToken.update({ where: { id: row.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
+      return;
+    }
     try {
       const payload = await req.jwtVerify<AuthUser>();
       req.authUser = payload;

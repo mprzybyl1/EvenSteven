@@ -16,10 +16,16 @@ datasource db {
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
-  displayName  String
-  passwordHash String
-  createdAt    DateTime @default(now())
+  // email + passwordHash są NULLABLE, bo istnieją konta-widma (placeholder):
+  // dorzucasz kogoś do podziału po samym imieniu, zanim w ogóle założy konto.
+  // Widmo nie ma e-maila/hasła i nie może się zalogować — dopóki nie "przejmie"
+  // konta przez claimToken (wtedy dostaje e-mail+hasło, a cała historia długów zostaje).
+  email         String?  @unique
+  displayName   String
+  passwordHash  String?
+  isPlaceholder Boolean  @default(false)
+  claimToken    String?  @unique // jednorazowy token do przejęcia konta-widma
+  createdAt     DateTime @default(now())
 
   memberships     GroupMember[]
   createdGroups   Group[]        @relation("GroupCreator")
@@ -29,6 +35,21 @@ model User {
   settlementsFrom Settlement[]   @relation("SettlementFrom")
   settlementsTo   Settlement[]   @relation("SettlementTo")
   pushSubscriptions PushSubscription[]
+  apiTokens         ApiToken[]
+}
+
+// Osobisty token API (Personal Access Token). Pozwala zewnętrznym integracjom
+// (np. agentowi AI z Signala) działać "jako ten user" bez cookie/logowania.
+// W bazie trzymamy tylko HASH (sha256) — plaintext pokazujemy raz przy tworzeniu.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String // etykieta nadana przez usera, np. "Agent squash"
+  tokenHash  String    @unique // sha256(token) w hex
+  prefix     String // pierwsze znaki tokenu do wyświetlenia, np. "es_pat_Ab12cd"
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 // Subskrypcja Web Push — jedna na urządzenie/przeglądarkę użytkownika.

@@ -1,7 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { prisma } from "../db.js";
 import { notifyGroupExcept } from "../lib/push.js";
+import { sendInviteEmail, mailEnabled } from "../lib/mail.js";
+import { env } from "../env.js";
 
 const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Kod waluty to 3 litery, np. PLN");
 
@@ -17,6 +20,20 @@ const createGroupSchema = z.object({
 const joinSchema = z.object({
   inviteCode: z.string().trim().min(1),
 });
+
+// Dodanie konta-widma (niezarejestrowanego uczestnika) — po imieniu, e-mail opcjonalny.
+const addMemberSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  email: z.string().trim().toLowerCase().email().optional().or(z.literal("")).transform((v) => v || undefined),
+});
+
+function newClaimToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+function claimUrl(token: string) {
+  return `${env.APP_ORIGIN}/claim/${token}`;
+}
 
 const updateGroupSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -142,7 +159,7 @@ export async function groupRoutes(app: FastifyInstance) {
       include: {
         members: {
           orderBy: { joinedAt: "asc" },
-          include: { user: { select: { id: true, displayName: true, email: true } } },
+          include: { user: { select: { id: true, displayName: true, email: true, isPlaceholder: true, claimToken: true } } },
         },
       },
     });
@@ -164,6 +181,9 @@ export async function groupRoutes(app: FastifyInstance) {
           email: m.user.email,
           role: m.role,
           joinedAt: m.joinedAt,
+          isPlaceholder: m.user.isPlaceholder,
+          // Link do przejęcia konta — tylko dla widm, żeby dało się skopiować/wysłać.
+          claimUrl: m.user.isPlaceholder && m.user.claimToken ? claimUrl(m.user.claimToken) : null,
         })),
       },
     };
@@ -218,6 +238,107 @@ export async function groupRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  // Dodaj konto-widmo (niezarejestrowanego uczestnika) — po samym imieniu.
+  // Każdy członek grupy może to zrobić (jak dodawanie wydatku). Jeśli podasz e-mail
+  // i serwer ma skonfigurowany Gmail SMTP — wyślemy zaproszenie z linkiem do przejęcia konta.
+  app.post("/:id/members", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const me = await membership(id, req.authUser!.id);
+    if (!me) return reply.code(403).send({ error: "Nie należysz do tej grupy" });
+
+    const parsed = addMemberSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Podaj imię (e-mail opcjonalnie)" });
+    const { name, email } = parsed.data;
+
+    const group = await prisma.group.findUnique({ where: { id }, select: { name: true, emoji: true } });
+    if (!group) return reply.code(404).send({ error: "Nie znaleziono grupy" });
+
+    // Jeśli podano e-mail i istnieje już PRAWDZIWE konto z tym mailem — dorzućmy je
+    // do grupy zamiast tworzyć widmo (bardziej intuicyjne).
+    if (email) {
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing && !existing.isPlaceholder) {
+        const already = await membership(id, existing.id);
+        if (already) return reply.code(409).send({ error: "Ta osoba już jest w wyjeździe" });
+        await prisma.groupMember.create({ data: { groupId: id, userId: existing.id, role: "member" } });
+        return reply.code(201).send({
+          member: { userId: existing.id, displayName: existing.displayName, email: existing.email, role: "member", isPlaceholder: false, claimUrl: null },
+          invited: false,
+        });
+      }
+    }
+
+    // Twórz konto-widmo + dorzuć do grupy (transakcyjnie).
+    const token = newClaimToken();
+    const ghost = await prisma.user.create({
+      data: {
+        displayName: name,
+        email: email ?? null,
+        isPlaceholder: true,
+        claimToken: token,
+        memberships: { create: { groupId: id, role: "member" } },
+      },
+      select: { id: true, displayName: true, email: true },
+    });
+
+    // Wyślij zaproszenie mailem (jeśli jest e-mail i mail skonfigurowany) — fire-and-forget.
+    let invited = false;
+    if (email && mailEnabled) {
+      invited = true;
+      void (async () => {
+        const inviter = await prisma.user.findUnique({ where: { id: req.authUser!.id }, select: { displayName: true } });
+        await sendInviteEmail(email, {
+          inviterName: inviter?.displayName ?? "Ktoś z ekipy",
+          groupName: group.name,
+          groupEmoji: group.emoji,
+          claimUrl: claimUrl(token),
+        });
+      })().catch((e) => app.log.error(e, "wysyłka zaproszenia nie powiodła się"));
+    }
+
+    return reply.code(201).send({
+      member: { userId: ghost.id, displayName: ghost.displayName, email: ghost.email, role: "member", isPlaceholder: true, claimUrl: claimUrl(token) },
+      invited,
+    });
+  });
+
+  // (Po)wysłanie zaproszenia do konta-widma na podany e-mail. Pozwala uzupełnić
+  // e-mail widmu dodanemu wcześniej po samym imieniu i wysłać mu link.
+  app.post("/:id/members/:userId/invite", async (req, reply) => {
+    const { id, userId: targetId } = req.params as { id: string; userId: string };
+    const me = await membership(id, req.authUser!.id);
+    if (!me) return reply.code(403).send({ error: "Nie należysz do tej grupy" });
+
+    const parsedEmail = z.string().trim().toLowerCase().email().safeParse((req.body as { email?: string })?.email);
+    if (!parsedEmail.success) return reply.code(400).send({ error: "Podaj poprawny e-mail" });
+    const email = parsedEmail.data;
+
+    if (!(await membership(id, targetId))) return reply.code(404).send({ error: "Tej osoby nie ma w grupie" });
+    const ghost = await prisma.user.findUnique({ where: { id: targetId } });
+    if (!ghost || !ghost.isPlaceholder) return reply.code(400).send({ error: "To konto jest już aktywne" });
+
+    // E-mail nie może należeć do innego konta.
+    const clash = await prisma.user.findUnique({ where: { email } });
+    if (clash && clash.id !== ghost.id) return reply.code(409).send({ error: "Ten e-mail jest już zajęty" });
+
+    const token = ghost.claimToken ?? newClaimToken();
+    await prisma.user.update({ where: { id: ghost.id }, data: { email, claimToken: token } });
+
+    if (!mailEnabled) {
+      // Mail wyłączony na serwerze — zwróć link do skopiowania ręcznie.
+      return reply.send({ sent: false, claimUrl: claimUrl(token) });
+    }
+    const group = await prisma.group.findUnique({ where: { id }, select: { name: true, emoji: true } });
+    const inviter = await prisma.user.findUnique({ where: { id: req.authUser!.id }, select: { displayName: true } });
+    await sendInviteEmail(email, {
+      inviterName: inviter?.displayName ?? "Ktoś z ekipy",
+      groupName: group?.name ?? "wyjazd",
+      groupEmoji: group?.emoji,
+      claimUrl: claimUrl(token),
+    });
+    return reply.send({ sent: true, claimUrl: claimUrl(token) });
+  });
+
   // Wyrzucenie członka — tylko właściciel. Nie można wyrzucić właściciela ani osoby
   // zaangażowanej finansowo.
   app.delete("/:id/members/:userId", async (req, reply) => {
@@ -233,6 +354,15 @@ export async function groupRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Ta osoba ma już wydatki/spłaty — nie można jej usunąć" });
     }
     await prisma.groupMember.delete({ where: { groupId_userId: { groupId: id, userId: targetId } } });
+
+    // Jeśli to było konto-widmo i nie należy już do żadnej grupy — skasuj je (nie zostawiamy sierot).
+    const ghost = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: { isPlaceholder: true, _count: { select: { memberships: true } } },
+    });
+    if (ghost?.isPlaceholder && ghost._count.memberships === 0) {
+      await prisma.user.delete({ where: { id: targetId } });
+    }
     return { ok: true };
   });
 }

@@ -8,6 +8,7 @@ import { authRoutes } from "./auth/routes.js";
 import { groupRoutes } from "./routes/groups.js";
 import { expenseRoutes } from "./routes/expenses.js";
 import { pushRoutes } from "./routes/push.js";
+import { tokenRoutes } from "./routes/tokens.js";
 import { prisma } from "./db.js";
 
 const app = Fastify({
@@ -30,6 +31,7 @@ await app.register(authRoutes, { prefix: "/api/auth" });
 await app.register(groupRoutes, { prefix: "/api/groups" });
 await app.register(expenseRoutes, { prefix: "/api/groups" });
 await app.register(pushRoutes, { prefix: "/api/push" });
+await app.register(tokenRoutes, { prefix: "/api/tokens" });
 
 // Logowanie/rejestracja ostrzej rate-limitowane (anty brute-force) — globalny limit
 // już jest, tu zostawiamy miejsce na ewentualny ostrzejszy per-route limit później.
