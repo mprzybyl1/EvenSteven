@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader";
+import { EmojiPicker } from "../components/EmojiPicker";
 import { CURRENCIES, useCreateGroup } from "../lib/groups";
 
 export function NewGroup() {
   const navigate = useNavigate();
   const createGroup = useCreateGroup();
   const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [baseCurrency, setBaseCurrency] = useState("PLN");
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +17,7 @@ export function NewGroup() {
     e.preventDefault();
     setError(null);
     try {
-      const group = await createGroup.mutateAsync({ name, description: description || undefined, baseCurrency });
+      const group = await createGroup.mutateAsync({ name, emoji, description: description || undefined, baseCurrency });
       navigate(`/groups/${group.id}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się utworzyć");
@@ -30,8 +32,16 @@ export function NewGroup() {
       <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4 py-6">
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-slate-600">Nazwa</span>
-          <input className={input} placeholder="np. Bieszczady 2026" value={name} required maxLength={80} onChange={(e) => setName(e.target.value)} />
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 focus-within:border-brand-blue">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-xl">{emoji || "🧳"}</span>
+            <input className="flex-1 bg-transparent py-3 text-base outline-none" placeholder="np. Bieszczady 2026" value={name} required maxLength={80} onChange={(e) => setName(e.target.value)} />
+          </div>
         </label>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-slate-600">Ikonka <span className="text-slate-400">(opcjonalnie)</span></span>
+          <EmojiPicker value={emoji} onChange={setEmoji} />
+        </div>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-slate-600">Opis <span className="text-slate-400">(opcjonalnie)</span></span>

@@ -5,8 +5,11 @@ import { notifyGroupExcept } from "../lib/push.js";
 
 const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Kod waluty to 3 litery, np. PLN");
 
+const emojiField = z.string().trim().max(16).optional().nullable();
+
 const createGroupSchema = z.object({
   name: z.string().trim().min(1).max(80),
+  emoji: emojiField,
   description: z.string().trim().max(300).optional(),
   baseCurrency: currencyCode,
 });
@@ -17,6 +20,7 @@ const joinSchema = z.object({
 
 const updateGroupSchema = z.object({
   name: z.string().trim().min(1).max(80),
+  emoji: emojiField,
   description: z.string().trim().max(300).optional().nullable(),
   baseCurrency: currencyCode,
 });
@@ -55,6 +59,7 @@ export async function groupRoutes(app: FastifyInstance) {
       groups: groups.map((g) => ({
         id: g.id,
         name: g.name,
+        emoji: g.emoji,
         description: g.description,
         baseCurrency: g.baseCurrency,
         memberCount: g._count.members,
@@ -71,11 +76,12 @@ export async function groupRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Błędne dane", details: z.treeifyError(parsed.error) });
     }
     const userId = req.authUser!.id;
-    const { name, description, baseCurrency } = parsed.data;
+    const { name, emoji, description, baseCurrency } = parsed.data;
 
     const group = await prisma.group.create({
       data: {
         name,
+        emoji: emoji || null,
         description,
         baseCurrency,
         createdById: userId,
@@ -90,10 +96,10 @@ export async function groupRoutes(app: FastifyInstance) {
     const { code } = req.params as { code: string };
     const group = await prisma.group.findUnique({
       where: { inviteCode: code },
-      select: { id: true, name: true, baseCurrency: true, _count: { select: { members: true } } },
+      select: { id: true, name: true, emoji: true, baseCurrency: true, _count: { select: { members: true } } },
     });
     if (!group) return reply.code(404).send({ error: "Nie ma takiego zaproszenia" });
-    return { group: { id: group.id, name: group.name, baseCurrency: group.baseCurrency, memberCount: group._count.members } };
+    return { group: { id: group.id, name: group.name, emoji: group.emoji, baseCurrency: group.baseCurrency, memberCount: group._count.members } };
   });
 
   // Dołącz do grupy przez kod zaproszenia.
@@ -146,6 +152,7 @@ export async function groupRoutes(app: FastifyInstance) {
       group: {
         id: group.id,
         name: group.name,
+        emoji: group.emoji,
         description: group.description,
         baseCurrency: group.baseCurrency,
         inviteCode: group.inviteCode,
@@ -181,9 +188,9 @@ export async function groupRoutes(app: FastifyInstance) {
 
     const updated = await prisma.group.update({
       where: { id },
-      data: { name: parsed.data.name, description: parsed.data.description ?? null, baseCurrency: parsed.data.baseCurrency },
+      data: { name: parsed.data.name, emoji: parsed.data.emoji || null, description: parsed.data.description ?? null, baseCurrency: parsed.data.baseCurrency },
     });
-    return { group: { id: updated.id, name: updated.name, description: updated.description, baseCurrency: updated.baseCurrency } };
+    return { group: { id: updated.id, name: updated.name, emoji: updated.emoji, description: updated.description, baseCurrency: updated.baseCurrency } };
   });
 
   // Usunięcie grupy — tylko właściciel. Kaskadowo kasuje wydatki/spłaty/członków.

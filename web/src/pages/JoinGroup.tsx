@@ -75,7 +75,7 @@ function JoinPreview({ code }: { code: string }) {
 
         {group && (
           <div className="w-full">
-            <p className="text-4xl">🏔️</p>
+            <p className="text-5xl">{group.emoji || "🏔️"}</p>
             <h1 className="mt-3 text-xl font-bold text-slate-800">{group.name}</h1>
             <p className="mt-1 text-sm text-slate-400">
               {group.memberCount} {group.memberCount === 1 ? "osoba" : "os."} · waluta {group.baseCurrency}

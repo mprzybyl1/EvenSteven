@@ -47,6 +47,7 @@ model PushSubscription {
 model Group {
   id           String   @id @default(cuid())
   name         String
+  emoji        String? // ikonka wyjazdu, np. "🏔️"
   description  String?
   baseCurrency String // ISO 4217, np. "PLN", "EUR"
   inviteCode   String   @unique @default(cuid())

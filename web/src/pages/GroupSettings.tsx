@@ -8,6 +8,7 @@ import {
 import { useExpenses } from "../lib/expenses";
 import { useConfirm } from "../components/Confirm";
 import { useToast } from "../components/Toast";
+import { EmojiPicker } from "../components/EmojiPicker";
 
 export function GroupSettings() {
   const { id = "" } = useParams();
@@ -23,6 +24,7 @@ export function GroupSettings() {
   const toast = useToast();
 
   const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [baseCurrency, setBaseCurrency] = useState("PLN");
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export function GroupSettings() {
   useEffect(() => {
     if (!group || prefilled) return;
     setName(group.name);
+    setEmoji(group.emoji ?? null);
     setDescription(group.description ?? "");
     setBaseCurrency(group.baseCurrency);
     setPrefilled(true);
@@ -48,7 +51,7 @@ export function GroupSettings() {
   async function save() {
     setError(null); setSaved(false);
     try {
-      await update.mutateAsync({ name, description: description || null, baseCurrency });
+      await update.mutateAsync({ name, emoji, description: description || null, baseCurrency });
       setSaved(true);
       toast.success("Zapisano zmiany");
       setTimeout(() => setSaved(false), 1800);
@@ -84,8 +87,15 @@ export function GroupSettings() {
         <section className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-600">Nazwa</span>
-            <input className={input} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 focus-within:border-brand-blue">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-xl">{emoji || "🧳"}</span>
+              <input className="flex-1 bg-transparent py-3 text-base outline-none" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+            </div>
           </label>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-600">Ikonka</span>
+            <EmojiPicker value={emoji} onChange={setEmoji} />
+          </div>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-600">Opis</span>
             <input className={input} value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} />

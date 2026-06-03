@@ -4,6 +4,7 @@ import { api } from "./api";
 export interface GroupListItem {
   id: string;
   name: string;
+  emoji: string | null;
   description: string | null;
   baseCurrency: string;
   memberCount: number;
@@ -22,6 +23,7 @@ export interface GroupMember {
 export interface GroupDetail {
   id: string;
   name: string;
+  emoji: string | null;
   description: string | null;
   baseCurrency: string;
   inviteCode: string;
@@ -47,7 +49,7 @@ export function useGroup(id: string) {
 export function useCreateGroup() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; description?: string; baseCurrency: string }) =>
+    mutationFn: (input: { name: string; emoji?: string | null; description?: string; baseCurrency: string }) =>
       api.post<{ group: { id: string } }>("/groups", input).then((r) => r.group),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
   });
@@ -56,7 +58,7 @@ export function useCreateGroup() {
 export function useUpdateGroup(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; description?: string | null; baseCurrency: string }) =>
+    mutationFn: (input: { name: string; emoji?: string | null; description?: string | null; baseCurrency: string }) =>
       api.patch(`/groups/${groupId}`, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["groups"] });
@@ -94,7 +96,7 @@ export function useInvitePreview(code: string) {
     queryKey: ["invite", code],
     queryFn: () =>
       api
-        .get<{ group: { id: string; name: string; baseCurrency: string; memberCount: number } }>(`/groups/invite/${code}`)
+        .get<{ group: { id: string; name: string; emoji: string | null; baseCurrency: string; memberCount: number } }>(`/groups/invite/${code}`)
         .then((r) => r.group),
     retry: false,
   });

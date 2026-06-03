@@ -41,15 +41,16 @@ export function Groups() {
             <Link
               key={g.id}
               to={`/groups/${g.id}`}
-              className="animate-list-item flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition active:scale-[0.99]"
+              className="animate-list-item flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition active:scale-[0.99]"
             >
-              <div className="min-w-0">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-2xl">{g.emoji || "🧳"}</span>
+              <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-slate-800">{g.name}</p>
                 <p className="truncate text-sm text-slate-400">
                   {g.memberCount} {g.memberCount === 1 ? "osoba" : "os."} · {g.expenseCount} wydatk.
                 </p>
               </div>
-              <span className="ml-3 shrink-0 rounded-full bg-brand-blue/10 px-2.5 py-1 text-xs font-semibold text-brand-ink">
+              <span className="shrink-0 rounded-full bg-brand-blue/10 px-2.5 py-1 text-xs font-semibold text-brand-ink">
                 {g.baseCurrency}
               </span>
             </Link>
