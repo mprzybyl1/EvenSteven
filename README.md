@@ -100,7 +100,61 @@ Zasada spójności: `suma(payers) == suma(shares) == amountMinor`.
 - [x] **Konto** — profil, zmiana ksywki i hasła
 - [x] **UI polish** — toasty, dialogi, daty + grupowanie, czytelne salda, animacje
 - [x] **Powiadomienia push** (Web Push/VAPID) — nowy wydatek, edycja, usunięcie, spłata, dołączenie
+- [x] **Dark mode** + emotka na wyjazd
+- [x] **Zewnętrzne API** — osobiste tokeny (Bearer) dla integracji/botów
+- [x] **Konta-widma** — dorzucasz kogoś po imieniu, zanim założy konto (z przejęciem konta)
+- [x] **Zaproszenia mailem** (Gmail SMTP, opcjonalne)
 - [ ] Itemized splits, auto-kursy walut, eksport CSV
+
+## Zewnętrzne API (tokeny) — dla botów i automatyzacji
+
+Chcesz, żeby skrypt / agent AI dopisywał wydatki sam (np. z czatu)? Wygeneruj
+**osobisty token API** w aplikacji: **Profil → Tokeny API → Wygeneruj**. Token
+widzisz **raz** — skopiuj go od razu. Działa "jako Ty" (pełny dostęp do Twoich
+grup), dlatego trzymaj go w sekrecie i odwołaj, gdy przecieknie.
+
+Token wysyłasz w nagłówku `Authorization: Bearer es_pat_…`. Wszystkie endpointy
+aplikacji są dostępne tak samo jak z przeglądarki. Najważniejsze do automatyzacji:
+
+```bash
+BASE=https://twoja-domena      # albo http://localhost:3001 w dev
+TOKEN=es_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# 1) Twoje grupy (żeby znać groupId)
+curl -s "$BASE/api/groups" -H "Authorization: Bearer $TOKEN"
+
+# 2) Ekipa grupy (mapowanie imię -> userId; widać też konta-widma)
+curl -s "$BASE/api/groups/<groupId>" -H "Authorization: Bearer $TOKEN"
+
+# 3) Dopisz wydatek: kort 60 zł, wyłożył Kazik, podział równo na 4 graczy
+curl -s -X POST "$BASE/api/groups/<groupId>/expenses" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "description": "Kort squash 12.06",
+    "amountMinor": 6000,
+    "currency": "PLN",
+    "category": "sport",
+    "payers": [{ "userId": "<kazik>", "amountMinor": 6000 }],
+    "shares": [
+      { "userId": "<kazik>",  "amountMinor": 1500 },
+      { "userId": "<adam>",   "amountMinor": 1500 },
+      { "userId": "<bartek>", "amountMinor": 1500 },
+      { "userId": "<celina>", "amountMinor": 1500 }
+    ]
+  }'
+
+# 4) Aktualne salda (kto komu ile jest jeszcze winien)
+curl -s "$BASE/api/groups/<groupId>/balances" -H "Authorization: Bearer $TOKEN"
+```
+
+> 💡 **Kwoty w groszach** (`amountMinor`): 60 zł = `6000`. Zasada spójności trzyma:
+> `suma(payers) == suma(shares) == amountMinor`.
+
+**Brakuje kogoś, kto nie ma konta?** Dodaj go po imieniu (**Ekipa → Dodaj osobę**)
+albo przez API (`POST /api/groups/<id>/members` z `{ "name": "Adam" }`). Powstaje
+**konto-widmo** — można go normalnie wpisywać do podziału. Gdy poda e-mail (albo
+użyjesz „Zaproś mailem"), dostanie link do założenia konta na **tej samej** historii
+długów. Bez konfiguracji Gmaila zaproszenie i tak da się rozesłać skopiowanym linkiem.
 
 ## Wdrożenie na VPS (Docker + Caddy + Postgres)
 
