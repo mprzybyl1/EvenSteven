@@ -55,6 +55,9 @@ export const openapiDocument = {
           email: { type: "string", nullable: true, example: "kazik@example.com" },
           displayName: { type: "string", example: "Kazik" },
           avatarEmoji: { type: "string", nullable: true, example: "🦊" },
+          blikPhone: { type: "string", nullable: true, description: "Numer tel. do BLIK", example: "555123456" },
+          bankAccount: { type: "string", nullable: true, description: "Numer konta / IBAN" },
+          payNote: { type: "string", nullable: true, description: "Notka do płatności" },
         },
       },
       Member: {
@@ -64,6 +67,9 @@ export const openapiDocument = {
           displayName: { type: "string" },
           email: { type: "string", nullable: true },
           avatarEmoji: { type: "string", nullable: true },
+          blikPhone: { type: "string", nullable: true },
+          bankAccount: { type: "string", nullable: true },
+          payNote: { type: "string", nullable: true },
           role: { type: "string", enum: ["owner", "member"] },
           joinedAt: { type: "string", format: "date-time" },
           isPlaceholder: { type: "boolean", description: "true = konto-widmo (niezarejestrowany)" },
@@ -177,8 +183,8 @@ export const openapiDocument = {
     "/api/auth/me": {
       get: { tags: ["Auth"], summary: "Dane zalogowanego", responses: { 200: { description: "OK", content: json("User") }, 401: err("Niezalogowany") } },
       patch: {
-        tags: ["Auth"], summary: "Zmiana ksywki / emotki-avatara",
-        requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { displayName: { type: "string" }, avatarEmoji: { type: "string", nullable: true, description: "Emotka jako avatar; null/\"\" czyści" } } } } } },
+        tags: ["Auth"], summary: "Zmiana ksywki / emotki-avatara / danych płatniczych",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { displayName: { type: "string" }, avatarEmoji: { type: "string", nullable: true, description: "Emotka jako avatar; null/\"\" czyści" }, blikPhone: { type: "string", nullable: true, description: "Numer BLIK; null/\"\" czyści" }, bankAccount: { type: "string", nullable: true, description: "Numer konta/IBAN; null/\"\" czyści" }, payNote: { type: "string", nullable: true, description: "Notka płatnicza; null/\"\" czyści" } } } } } },
         responses: { 200: { description: "OK", content: json("User") } },
       },
     },

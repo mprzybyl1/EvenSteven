@@ -23,6 +23,11 @@ model User {
   email         String?  @unique
   displayName   String
   avatarEmoji   String? // opcjonalna emotka jako avatar (zamiast inicjału)
+  // Dane do płatności — żeby przy rozliczeniu wiadomo było DOKĄD oddać kasę.
+  // Globalne (te same w każdej grupie), wszystkie opcjonalne.
+  blikPhone     String? // numer telefonu do BLIK na telefon (P2P)
+  bankAccount   String? // numer konta / IBAN
+  payNote       String? // dowolna notka, np. "Revolut @ksywka" albo "wolę gotówką"
   passwordHash  String?
   isPlaceholder Boolean  @default(false)
   claimToken    String?  @unique // jednorazowy token do przejęcia konta-widma

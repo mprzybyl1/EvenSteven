@@ -57,6 +57,23 @@ export function Profile() {
   const [nameMsg, setNameMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [nameBusy, setNameBusy] = useState(false);
 
+  // Dane do płatności — globalne, żeby ekipa wiedziała dokąd oddać kasę.
+  const [blikPhone, setBlikPhone] = useState(user?.blikPhone ?? "");
+  const [bankAccount, setBankAccount] = useState(user?.bankAccount ?? "");
+  const [payNote, setPayNote] = useState(user?.payNote ?? "");
+  const [payMsg, setPayMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [payBusy, setPayBusy] = useState(false);
+
+  async function savePayInfo() {
+    setPayMsg(null); setPayBusy(true);
+    try {
+      await updateProfile({ blikPhone: blikPhone.trim(), bankAccount: bankAccount.trim(), payNote: payNote.trim() });
+      setPayMsg({ ok: true, text: "Zapisano ✓" });
+    } catch (err) {
+      setPayMsg({ ok: false, text: err instanceof Error ? err.message : "Nie udało się" });
+    } finally { setPayBusy(false); }
+  }
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -133,6 +150,22 @@ export function Profile() {
           {nameMsg && <p className={`text-sm ${nameMsg.ok ? "text-green-600" : "text-red-600"}`}>{nameMsg.text}</p>}
           <button onClick={saveName} disabled={nameBusy || !displayName.trim()} className="bg-brand-gradient rounded-xl py-3 font-semibold text-white shadow-md disabled:opacity-60">
             {nameBusy ? "Zapisuję…" : "Zapisz ksywkę"}
+          </button>
+        </section>
+
+        {/* Dane do płatności */}
+        <section className="flex flex-col gap-2 border-t border-slate-100 pt-5">
+          <h2 className="text-sm font-semibold text-slate-600">Dane do płatności 💸</h2>
+          <p className="text-xs text-slate-400">Widoczne dla ekipy przy rozliczeniu, żeby wiedzieli dokąd Ci oddać. Wszystko opcjonalne.</p>
+          <label className="text-xs font-medium text-slate-500">Numer do BLIK</label>
+          <input className={input} inputMode="tel" placeholder="np. 555 123 456" value={blikPhone} maxLength={32} onChange={(e) => setBlikPhone(e.target.value)} />
+          <label className="text-xs font-medium text-slate-500">Numer konta / IBAN</label>
+          <input className={input} placeholder="np. PL61 1090 ..." value={bankAccount} maxLength={64} onChange={(e) => setBankAccount(e.target.value)} />
+          <label className="text-xs font-medium text-slate-500">Notka</label>
+          <input className={input} placeholder="np. Revolut @ksywka, wolę gotówką…" value={payNote} maxLength={200} onChange={(e) => setPayNote(e.target.value)} />
+          {payMsg && <p className={`text-sm ${payMsg.ok ? "text-green-600" : "text-red-600"}`}>{payMsg.text}</p>}
+          <button onClick={savePayInfo} disabled={payBusy} className="bg-brand-gradient rounded-xl py-3 font-semibold text-white shadow-md disabled:opacity-60">
+            {payBusy ? "Zapisuję…" : "Zapisz dane płatnicze"}
           </button>
         </section>
 

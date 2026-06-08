@@ -46,4 +46,7 @@ export interface User {
   email: string | null;
   displayName: string;
   avatarEmoji?: string | null;
+  blikPhone?: string | null;
+  bankAccount?: string | null;
+  payNote?: string | null;
 }

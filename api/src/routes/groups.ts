@@ -159,7 +159,7 @@ export async function groupRoutes(app: FastifyInstance) {
       include: {
         members: {
           orderBy: { joinedAt: "asc" },
-          include: { user: { select: { id: true, displayName: true, email: true, avatarEmoji: true, isPlaceholder: true, claimToken: true } } },
+          include: { user: { select: { id: true, displayName: true, email: true, avatarEmoji: true, blikPhone: true, bankAccount: true, payNote: true, isPlaceholder: true, claimToken: true } } },
         },
       },
     });
@@ -180,6 +180,9 @@ export async function groupRoutes(app: FastifyInstance) {
           displayName: m.user.displayName,
           email: m.user.email,
           avatarEmoji: m.user.avatarEmoji,
+          blikPhone: m.user.blikPhone,
+          bankAccount: m.user.bankAccount,
+          payNote: m.user.payNote,
           role: m.role,
           joinedAt: m.joinedAt,
           isPlaceholder: m.user.isPlaceholder,

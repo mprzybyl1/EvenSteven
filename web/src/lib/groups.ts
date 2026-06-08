@@ -17,6 +17,9 @@ export interface GroupMember {
   displayName: string;
   email: string | null;
   avatarEmoji?: string | null;
+  blikPhone?: string | null;
+  bankAccount?: string | null;
+  payNote?: string | null;
   role: string;
   joinedAt: string;
   isPlaceholder?: boolean;

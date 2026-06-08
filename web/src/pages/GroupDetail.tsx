@@ -272,17 +272,11 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
         ) : (
           <div className="flex flex-col gap-2">
             {data.transactions.map((t, i) => (
-              <div key={i} className="animate-list-item flex items-center gap-2 rounded-xl bg-white p-3 shadow-sm">
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  <span className="font-medium text-slate-700">{t.fromName}</span>
-                  <span className="text-slate-400"> → </span>
-                  <span className="font-medium text-slate-700">{t.toName}</span>
-                </span>
-                <span className="font-semibold tabular-nums text-slate-800">{formatMoney(t.amountMinor, base)}</span>
-                <button onClick={() => doSettle(t)} disabled={settle.isPending} className="shrink-0 rounded-lg bg-brand-green/15 px-3 py-1.5 text-sm font-semibold text-brand-green disabled:opacity-50">
-                  Rozlicz
-                </button>
-              </div>
+              <SettleRow
+                key={i} t={t} base={base}
+                recipient={members.find((m) => m.userId === t.toUserId)}
+                pending={settle.isPending} onSettle={() => doSettle(t)}
+              />
             ))}
           </div>
         )}
@@ -324,6 +318,72 @@ function BalancesTab({ groupId, members }: { groupId: string; members: GroupMemb
           !showForm && <p className="text-sm text-slate-400">Brak spłat. Rozlicz powyżej albo dodaj ręcznie.</p>
         )}
       </section>
+    </div>
+  );
+}
+
+// Wiersz "kto komu ile" z rozwijanym panelem danych płatniczych odbiorcy.
+// Dzięki temu wiadomo DOKĄD zriknąć BLIKa zamiast dopytywać na grupie.
+function SettleRow({
+  t, base, recipient, pending, onSettle,
+}: {
+  t: SettleTx;
+  base: string;
+  recipient?: GroupMember;
+  pending: boolean;
+  onSettle: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasPayInfo = !!(recipient?.blikPhone || recipient?.bankAccount || recipient?.payNote);
+
+  return (
+    <div className="animate-list-item rounded-xl bg-white shadow-sm">
+      <div className="flex items-center gap-2 p-3">
+        <span className="min-w-0 flex-1 truncate text-sm">
+          <span className="font-medium text-slate-700">{t.fromName}</span>
+          <span className="text-slate-400"> → </span>
+          <span className="font-medium text-slate-700">{t.toName}</span>
+        </span>
+        <span className="font-semibold tabular-nums text-slate-800">{formatMoney(t.amountMinor, base)}</span>
+        {hasPayInfo && (
+          <button
+            onClick={() => setOpen((o) => !o)} aria-expanded={open}
+            className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+            title="Jak oddać"
+          >
+            💸 {open ? "▲" : "▼"}
+          </button>
+        )}
+        <button onClick={onSettle} disabled={pending} className="shrink-0 rounded-lg bg-brand-green/15 px-3 py-1.5 text-sm font-semibold text-brand-green disabled:opacity-50">
+          Rozlicz
+        </button>
+      </div>
+
+      {open && hasPayInfo && (
+        <div className="flex flex-col gap-1.5 border-t border-slate-100 px-3 py-2.5">
+          <p className="text-xs text-slate-400">Jak oddać kasę dla <span className="font-medium text-slate-500">{t.toName}</span>:</p>
+          {recipient?.blikPhone && <CopyField label="BLIK" value={recipient.blikPhone} mono />}
+          {recipient?.bankAccount && <CopyField label="Konto" value={recipient.bankAccount} mono />}
+          {recipient?.payNote && <CopyField label="Notka" value={recipient.payNote} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pojedyncza linia danych płatniczych z przyciskiem kopiuj.
+function CopyField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const toast = useToast();
+  async function copy() {
+    try { await navigator.clipboard.writeText(value); toast.success(`${label} skopiowane ✓`); } catch { toast.error("Nie udało się skopiować"); }
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+      <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+      <span className={`min-w-0 flex-1 truncate text-sm text-slate-700 ${mono ? "font-mono" : ""}`}>{value}</span>
+      <button onClick={copy} className="shrink-0 rounded-md bg-brand-blue/10 px-2.5 py-1 text-xs font-semibold text-brand-ink hover:bg-brand-blue/20">
+        Kopiuj
+      </button>
     </div>
   );
 }

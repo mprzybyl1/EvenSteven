@@ -17,6 +17,9 @@ const loginSchema = z.object({
 const updateMeSchema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
   avatarEmoji: z.string().trim().max(16).nullable().optional(),
+  blikPhone: z.string().trim().max(32).nullable().optional(),
+  bankAccount: z.string().trim().max(64).nullable().optional(),
+  payNote: z.string().trim().max(200).nullable().optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -31,8 +34,14 @@ const claimSchema = z.object({
   password: z.string().min(8, "Hasło min. 8 znaków").max(200),
 });
 
-function publicUser(u: { id: string; email: string | null; displayName: string; avatarEmoji?: string | null }) {
-  return { id: u.id, email: u.email, displayName: u.displayName, avatarEmoji: u.avatarEmoji ?? null };
+function publicUser(u: {
+  id: string; email: string | null; displayName: string; avatarEmoji?: string | null;
+  blikPhone?: string | null; bankAccount?: string | null; payNote?: string | null;
+}) {
+  return {
+    id: u.id, email: u.email, displayName: u.displayName, avatarEmoji: u.avatarEmoji ?? null,
+    blikPhone: u.blikPhone ?? null, bankAccount: u.bankAccount ?? null, payNote: u.payNote ?? null,
+  };
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -91,10 +100,17 @@ export async function authRoutes(app: FastifyInstance) {
     const parsed = updateMeSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "Błędne dane" });
 
-    const data: { displayName?: string; avatarEmoji?: string | null } = {};
+    const data: {
+      displayName?: string; avatarEmoji?: string | null;
+      blikPhone?: string | null; bankAccount?: string | null; payNote?: string | null;
+    } = {};
     if (parsed.data.displayName !== undefined) data.displayName = parsed.data.displayName;
     // avatarEmoji: pusty string albo null = wyczyść (wraca do inicjału).
     if (parsed.data.avatarEmoji !== undefined) data.avatarEmoji = parsed.data.avatarEmoji || null;
+    // Dane płatnicze: pusty string = wyczyść pole.
+    if (parsed.data.blikPhone !== undefined) data.blikPhone = parsed.data.blikPhone || null;
+    if (parsed.data.bankAccount !== undefined) data.bankAccount = parsed.data.bankAccount || null;
+    if (parsed.data.payNote !== undefined) data.payNote = parsed.data.payNote || null;
 
     const user = await prisma.user.update({ where: { id: req.authUser!.id }, data });
     return reply.send({ user: publicUser(user) });

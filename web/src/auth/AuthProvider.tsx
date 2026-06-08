@@ -9,7 +9,10 @@ interface AuthContextValue {
   register: (email: string, displayName: string, password: string) => Promise<void>;
   claim: (token: string, email: string, displayName: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (input: { displayName?: string; avatarEmoji?: string | null }) => Promise<void>;
+  updateProfile: (input: {
+    displayName?: string; avatarEmoji?: string | null;
+    blikPhone?: string | null; bankAccount?: string | null; payNote?: string | null;
+  }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
