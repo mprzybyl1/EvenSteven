@@ -83,6 +83,7 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
   const del = useDeleteExpense(groupId);
   const confirm = useConfirm();
   const toast = useToast();
+  const [activeCat, setActiveCat] = useState<string | null>(null);
 
   async function removeExpense(id: string, description: string) {
     if (!(await confirm({ title: "Usunąć wydatek?", message: `„${description}" zniknie z rozliczenia.`, confirmText: "Usuń", danger: true }))) return;
@@ -110,9 +111,12 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
   }
   const breakdown = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
 
+  // Lista wydatków pod podsumowaniem — opcjonalnie zawężona do wybranej kategorii.
+  const visible = activeCat ? expenses.filter((e) => (e.category ?? "other") === activeCat) : expenses;
+
   // Grupowanie po dniach (expenses są już posortowane malejąco po dacie).
   const groups: { key: string; label: string; items: typeof expenses }[] = [];
-  for (const e of expenses) {
+  for (const e of visible) {
     const k = dayKey(e.date);
     let g = groups.find((x) => x.key === k);
     if (!g) { g = { key: k, label: formatDate(e.date), items: [] }; groups.push(g); }
@@ -129,13 +133,30 @@ function ExpensesTab({ groupId, baseCurrency }: { groupId: string; baseCurrency:
         <div className="mt-2 flex flex-wrap gap-1.5">
           {breakdown.map(([key, amt]) => {
             const c = categoryMeta(key);
+            const active = activeCat === key;
             return (
-              <span key={key} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+              <button
+                key={key}
+                onClick={() => setActiveCat(active ? null : key)}
+                aria-pressed={active}
+                className={`rounded-full px-2 py-0.5 text-xs transition ${
+                  active ? "bg-brand-blue/15 font-semibold text-brand-ink ring-1 ring-brand-blue/30" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+                title={active ? `Pokaż wszystkie` : `Pokaż tylko: ${c.label}`}
+              >
                 {c.emoji} {formatMoney(amt, baseCurrency)}
-              </span>
+              </button>
             );
           })}
         </div>
+        {activeCat && (
+          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+            <span>Filtr: {categoryMeta(activeCat).emoji} {categoryMeta(activeCat).label}</span>
+            <button onClick={() => setActiveCat(null)} className="font-semibold text-brand-ink">
+              Pokaż wszystkie
+            </button>
+          </div>
+        )}
       </div>
 
       {groups.map((g) => (
